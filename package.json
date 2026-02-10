@@ -1,39 +1,38 @@
 {
-  "name": "LeetCodeWidget",
+  "name": "leetcode-widget",
   "version": "1.0.0",
-  "description": "",
   "main": "main.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "electron .",
-    "build": "electron-builder"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "type": "commonjs",
+  "scripts": {
+    "start": "electron .",
+    "build": "echo \"no frontend build\"",
+    "dist": "electron-builder"
+  },
   "devDependencies": {
     "electron": "^40.2.1",
     "electron-builder": "^26.7.0"
+  },
+  "dependencies": {
+    "auto-launch": "^5.0.6",
+    "electron-store": "^11.0.2"
   },
   "build": {
     "appId": "com.abdulaziz.leetcodewidget",
     "productName": "LeetCodeWidget",
     "files": [
-      "**/*"
+      "main.js",
+      "preload.js",
+      "index.html",
+      "renderer.js",
+      "styles.css",
+      "package.json",
+      "assets/**"
     ],
     "directories": {
-      "output": "dist"
+      "output": "release"
     },
     "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
+      "target": "nsis",
       "icon": "assets/icon.ico"
     },
     "mac": {
@@ -42,9 +41,5 @@
     "linux": {
       "target": "AppImage"
     }
-  },
-  "dependencies": {
-    "auto-launch": "^5.0.6",
-    "electron-store": "^11.0.2"
   }
 }
