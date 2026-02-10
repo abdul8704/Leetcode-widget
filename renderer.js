@@ -6,14 +6,15 @@ function hideLoading() {
   document.getElementById("loadingScreen").style.display = "none";
 }
 
-async function loadData() {
+async function loadData({ showSpinner = true } = {}) {
   console.log("[renderer] loadData start");
-  showLoading();
+  if (showSpinner) {
+    showLoading();
+  }
   try {
     const data = await window.api.fetchStats();
     console.log("[renderer] loadData data", data);
     if (!data) {
-      hideLoading();
       return;
     }
 
@@ -91,7 +92,9 @@ async function loadData() {
     }
   });
   } finally {
-    hideLoading();
+    if (showSpinner) {
+      hideLoading();
+    }
   }
 }
 
@@ -110,8 +113,8 @@ async function saveHandle() {
   if (!handle) return;
 
   const title = document.querySelector(".setup-card h3");
-  showLoading();
   try {
+    showLoading();
     if (!window.api || typeof window.api.setHandle !== "function") {
       throw new Error("App bridge not available");
     }
@@ -120,15 +123,16 @@ async function saveHandle() {
     window.api.setHandle(handle);
     console.log("[renderer] saveHandle after setHandle");
     showWidget();
-    await loadData();
+    await loadData({ showSpinner: false });
     console.log("[renderer] saveHandle after loadData");
   } catch (error) {
     console.error("[renderer] saveHandle error", error);
-    hideLoading();
     showSetupScreen();
     if (title) {
       title.innerText = error.message || "Unable to save handle";
     }
+  } finally {
+    hideLoading();
   }
 }
 
