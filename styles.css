@@ -1,0 +1,256 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap");
+
+:root {
+  --bg: rgba(22, 22, 22, 0.94);
+  --panel: rgba(28, 28, 28, 0.98);
+  --text: #f2f2f2;
+  --muted: #9a9a9a;
+  --easy: #00b8a3;
+  --medium: #ffc01e;
+  --hard: #ef4743;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: transparent;
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  color: var(--text);
+}
+
+.card {
+  background: var(--bg);
+  border-radius: 16px;
+  padding: 12px;
+  color: var(--text);
+  -webkit-app-region: drag;
+}
+
+.chart-wrap,
+.legend,
+.legend-row,
+.bar-wrap,
+canvas {
+  -webkit-app-region: no-drag;
+}
+
+.solved-section {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 12px;
+  align-items: center;
+  background: var(--panel);
+  border-radius: 14px;
+  padding: 10px;
+}
+
+.chart-wrap {
+  position: relative;
+  width: 112px;
+  height: 112px;
+}
+
+.chart-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.chart-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.center-count {
+  font-size: 24px;
+  font-weight: 550;
+  letter-spacing: -0.02em;
+}
+
+.center-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.legend {
+  display: grid;
+  gap: 8px;
+}
+
+.legend-row {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.legend-name {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.legend-count {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot.easy {
+  background: var(--easy);
+}
+
+.dot.medium {
+  background: var(--medium);
+}
+
+.dot.hard {
+  background: var(--hard);
+}
+
+.bar-wrap {
+  margin-top: 10px;
+  height: 120px;
+}
+
+.bar-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ------------------ SETUP SCREEN ------------------ */
+
+.setup-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(22, 22, 22, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-app-region: drag;
+}
+
+.setup-card {
+  background: var(--panel);
+  border-radius: 16px;
+  padding: 20px 22px;
+  width: 260px;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  -webkit-app-region: no-drag;
+}
+
+.setup-card input,
+.setup-card button {
+  -webkit-app-region: no-drag;
+}
+
+.setup-card h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.setup-card input {
+  width: 100%;
+  margin-top: 14px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+  transition: border 0.2s ease, background 0.2s ease;
+}
+
+.setup-card input:focus {
+  border: 1px solid var(--easy);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.setup-card button {
+  margin-top: 14px;
+  width: 100%;
+  padding: 8px 0;
+  border-radius: 8px;
+  border: none;
+  background: var(--easy);
+  color: #0f0f0f;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.05s ease;
+}
+
+.setup-card button:hover {
+  opacity: 0.9;
+}
+
+.setup-card button:active {
+  transform: scale(0.98);
+}
+
+/* ------------------ LOADING SCREEN ------------------ */
+
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(22, 22, 22, 0.96);
+  backdrop-filter: blur(8px);
+  -webkit-app-region: drag;
+  z-index: 9999;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(0, 184, 163, 0.15);
+  border-top-color: var(--easy);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+#dailySolvedCount{
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 15px;
+  padding-top: 3px;
+}

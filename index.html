@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- LOADING SCREEN -->
+  <div id="loadingScreen" class="loading-screen" style="display:none;">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Loading...</div>
+  </div>
+
+  <!-- SETUP SCREEN -->
+  <div id="setupScreen" class="setup-screen" style="display:none;">
+    <div class="setup-card">
+      <h3>Enter your LeetCode username</h3>
+      <input id="username" placeholder="e.g. tourist" />
+      <button id="saveHandleButton">Save</button>
+    </div>
+  </div>
+
+  <!-- MAIN WIDGET -->
+  <div id="widgetContent" style="display:none;">
+    <div class="card">
+      <div class="solved-section">
+        <div class="chart-wrap">
+          <canvas id="pieChart"></canvas>
+          <div class="chart-center">
+            <div class="center-count" id="solvedCount"></div>
+            <div class="center-label">Solved</div>
+          </div>
+        </div>
+
+        <div class="legend">
+          <div class="legend-row">
+            <span class="dot easy"></span>
+            <span class="legend-name">Easy</span>
+            <span class="legend-count" id="easyCount"></span>
+          </div>
+          <div class="legend-row">
+            <span class="dot medium"></span>
+            <span class="legend-name">Medium</span>
+            <span class="legend-count" id="mediumCount"></span>
+          </div>
+          <div class="legend-row">
+            <span class="dot hard"></span>
+            <span class="legend-name">Hard</span>
+            <span class="legend-count" id="hardCount"></span>
+          </div>
+        </div>
+      </div>
+      <center>
+        <div id="dailySolvedCount" class="daily-solved-count"></div>
+      </center>
+
+      <div class="bar-wrap">
+        <canvas id="barChart"></canvas>
+      </div>
+      
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="renderer.js"></script>
+</body>
+
+</html>
