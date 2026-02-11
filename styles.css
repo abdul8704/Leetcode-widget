@@ -114,10 +114,22 @@ canvas {
 }
 
 .legend {
-  display: grid;
-  gap: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   position: relative;
-  padding-top: 30px;
+  padding-top: 16px;
+}
+
+.legend-main {
+  flex: 1 1 auto;
+}
+
+.legend-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
 }
 
 .legend-refresh {
@@ -158,9 +170,6 @@ canvas {
 }
 
 .legend-toggle {
-  position: absolute;
-  top: 0;
-  right: 0;
   font-size: 10px;
   -webkit-app-region: no-drag;
 }
@@ -168,7 +177,7 @@ canvas {
 .legend-today {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   align-items: center;
   justify-content: center;
   text-align: center;
@@ -185,6 +194,19 @@ canvas {
   color: var(--text);
   font-size: 20px;
   font-weight: 600;
+}
+
+.card.collapsed .legend-today-label {
+  flex: 0 0 auto;
+  text-align: left;
+}
+
+.card.collapsed .legend-today-count {
+  flex: 0 0 auto;
+  text-align: left;
+  margin-left: 6px;
+  font-size: 26px;
+  font-weight: 700;
 }
 
 /* Default: show today view, hide difficulty; on card hover, swap */
@@ -233,29 +255,52 @@ canvas {
   height: 100% !important;
 }
 
-/* Collapsed card: show only the pie chart section */
+/* Collapsed card: show only the "Questions Solved Today" legend in a square */
 .card.collapsed {
   max-height: 156px;
-  width: 156px;
+  width: 260px;
 }
 
 .card.collapsed .solved-section {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: stretch;
   height: 100%;
 }
 
-.card.collapsed .legend,
-.card.collapsed .bar-wrap {
+.card.collapsed .chart-wrap {
   display: none;
 }
 
+.card.collapsed .legend {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0;
+  width: 100%;
+}
+
+.card.collapsed .legend-toggle {
+  display: none;
+}
+
+.card.collapsed .legend #legend-difficulty {
+  display: none !important;
+}
+
+.card.collapsed .legend #legend-today {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.card.collapsed .bar-wrap {
+  display: none;
+}
 .card-toggle {
-  position: absolute;
-  bottom: 6px;
-  right: 6px;
-  font-size: 10px;
+  font-size: 9px;
   -webkit-app-region: no-drag;
 }
 
