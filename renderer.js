@@ -87,7 +87,6 @@ async function loadData({ showSpinner = true } = {}) {
 
   // Display daily solved count
   const lastDailyCount = dailyCounts[dailyCounts.length - 1] || 0;
-  document.getElementById("dailySolvedCount").innerText = `Number of questions solved today: ${lastDailyCount}`;
   const legendTodayCountEl = document.getElementById("legendTodayCount");
   if (legendTodayCountEl) {
     legendTodayCountEl.innerText = lastDailyCount;
@@ -219,6 +218,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   const saveButton = document.getElementById("saveHandleButton");
   const refreshButton = document.getElementById("refreshButton");
   const legendToggleButton = document.getElementById("legendToggleButton");
+  const cardToggleButton = document.getElementById("cardToggleButton");
   const cardElement = document.querySelector(".card");
   if (saveButton) {
     saveButton.addEventListener("click", saveHandle);
@@ -246,6 +246,21 @@ window.addEventListener("DOMContentLoaded", async () => {
   } else {
     console.warn("[renderer] legend toggle button or card element not found", {
       hasButton: !!legendToggleButton,
+      hasCard: !!cardElement
+    });
+  }
+
+  if (cardToggleButton && cardElement) {
+    cardToggleButton.addEventListener("click", () => {
+      const isCollapsed = cardElement.classList.toggle("collapsed");
+      const label = isCollapsed ? "Expand widget" : "Collapse widget";
+      cardToggleButton.setAttribute("aria-label", label);
+      cardToggleButton.setAttribute("title", label);
+    });
+    console.log("[renderer] bound card toggle button");
+  } else {
+    console.warn("[renderer] card toggle button or card element not found", {
+      hasButton: !!cardToggleButton,
       hasCard: !!cardElement
     });
   }

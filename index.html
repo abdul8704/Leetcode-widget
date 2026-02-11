@@ -22,7 +22,7 @@
 
   <!-- MAIN WIDGET -->
   <div id="widgetContent" style="display:none;">
-    <div class="card">
+    <div class="card collapsed" id="mainCard">
       <div class="solved-section">
         <div class="chart-wrap">
           <canvas id="pieChart"></canvas>
@@ -69,7 +69,15 @@
       <div class="bar-wrap">
         <canvas id="barChart"></canvas>
       </div>
-      
+
+      <button
+        id="cardToggleButton"
+        class="icon-button card-toggle"
+        title="Expand widget"
+        aria-label="Expand widget">
+        ⤢
+      </button>
+
     </div>
   </div>
 

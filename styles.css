@@ -30,6 +30,10 @@ body {
   padding: 12px;
   color: var(--text);
   -webkit-app-region: drag;
+  position: relative;
+  overflow: hidden;
+  max-height: 420px;
+  transition: max-height 0.25s ease, padding 0.25s ease;
 }
 
 .chart-wrap,
@@ -227,6 +231,32 @@ canvas {
 .bar-wrap canvas {
   width: 100% !important;
   height: 100% !important;
+}
+
+/* Collapsed card: show only the pie chart section */
+.card.collapsed {
+  max-height: 156px;
+  width: 156px;
+}
+
+.card.collapsed .solved-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.card.collapsed .legend,
+.card.collapsed .bar-wrap {
+  display: none;
+}
+
+.card-toggle {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  font-size: 10px;
+  -webkit-app-region: no-drag;
 }
 
 /* ------------------ SETUP SCREEN ------------------ */
