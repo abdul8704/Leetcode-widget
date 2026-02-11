@@ -1,7 +1,6 @@
 const { contextBridge } = require("electron");
 const Store = require("electron-store");
 const StoreClass = Store.default || Store;
-require('dotenv').config();
 
 let store;
 try {
@@ -33,6 +32,7 @@ contextBridge.exposeInMainWorld("api", {
     store.set("leetcodeHandle", handle);
     const saved = store.get("leetcodeHandle");
     console.log("[preload] setHandle saved", { saved });
+    return saved;
   },
 
   fetchStats: async () => {
@@ -43,7 +43,13 @@ contextBridge.exposeInMainWorld("api", {
     if (!handle) return null;
 
     const res = await fetch(`https://leetcode-widget-server.onrender.com/leetcode/stats/${handle}`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch stats (${res.status})`);
+    }
     const json = await res.json();
+    if (!json || typeof json !== "object") {
+      throw new Error("Invalid stats response");
+    }
     console.log("[preload] fetchStats response", { status: res.status, json });
     return json;
   }

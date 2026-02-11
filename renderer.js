@@ -1,3 +1,10 @@
+const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+let pieChartInstance = null;
+let lineChartInstance = null;
+let refreshIntervalId = null;
+let isLoadingData = false;
+const DEFAULT_SAVE_BUTTON_LABEL = "Save";
+
 function showLoading() {
   document.getElementById("loadingScreen").style.display = "flex";
 }
@@ -7,6 +14,10 @@ function hideLoading() {
 }
 
 async function loadData({ showSpinner = true } = {}) {
+  if (isLoadingData) {
+    return;
+  }
+  isLoadingData = true;
   console.log("[renderer] loadData start");
   if (showSpinner) {
     showLoading();
@@ -14,23 +25,29 @@ async function loadData({ showSpinner = true } = {}) {
   try {
     const data = await window.api.fetchStats();
     console.log("[renderer] loadData data", data);
-    if (!data) {
+    if (!data || typeof data !== "object") {
       return;
     }
 
-  const total = data.total ?? (data.easy + data.medium + data.hard);
+  const easy = Number(data.easy) || 0;
+  const medium = Number(data.medium) || 0;
+  const hard = Number(data.hard) || 0;
+  const total = Number(data.total) || (easy + medium + hard);
 
   document.getElementById("solvedCount").innerText = total;
-  document.getElementById("easyCount").innerText = data.easy;
-  document.getElementById("mediumCount").innerText = data.medium;
-  document.getElementById("hardCount").innerText = data.hard;
+  document.getElementById("easyCount").innerText = easy;
+  document.getElementById("mediumCount").innerText = medium;
+  document.getElementById("hardCount").innerText = hard;
 
-  new Chart(document.getElementById("pieChart"), {
+  if (pieChartInstance) {
+    pieChartInstance.destroy();
+  }
+  pieChartInstance = new Chart(document.getElementById("pieChart"), {
     type: "doughnut",
     data: {
       labels: ["Easy", "Medium", "Hard"],
       datasets: [{
-        data: [data.easy, data.medium, data.hard],
+        data: [easy, medium, hard],
         backgroundColor: ["#00b8a3", "#ffc01e", "#ef4743"],
         borderWidth: 0,
         spacing: 2,
@@ -49,26 +66,33 @@ async function loadData({ showSpinner = true } = {}) {
     }
   });
 
-  const hasDailyObject =
-    data.daily &&
-    !Array.isArray(data.daily) &&
-    typeof data.daily === "object";
+  const hasDailyObject = data.daily && !Array.isArray(data.daily) && typeof data.daily === "object";
+  let dailyLabels = [];
+  let dailyCounts = [];
 
-  const dailyLabels = hasDailyObject
-    ? Object.keys(data.daily)
-    : Array.isArray(data.dailyDates)
+  if (hasDailyObject) {
+    dailyLabels = Object.keys(data.daily);
+    dailyCounts = Object.values(data.daily).map((count) => Number(count) || 0);
+  } else if (Array.isArray(data.daily)) {
+    dailyCounts = data.daily.map((count) => Number(count) || 0);
+    dailyLabels = Array.isArray(data.dailyDates)
       ? data.dailyDates
-      : data.daily.map((_, i) => `D${i + 1}`);
+      : dailyCounts.map((_, i) => `D${i + 1}`);
+  }
 
-  const dailyCounts = hasDailyObject
-    ? Object.values(data.daily)
-    : data.daily;
+  if (dailyCounts.length === 0) {
+    dailyLabels = ["Today"];
+    dailyCounts = [0];
+  }
 
   // Display daily solved count
   const lastDailyCount = dailyCounts[dailyCounts.length - 1] || 0;
   document.getElementById("dailySolvedCount").innerText = `Number of questions solved today: ${lastDailyCount}`;
 
-  new Chart(document.getElementById("barChart"), {
+  if (lineChartInstance) {
+    lineChartInstance.destroy();
+  }
+  lineChartInstance = new Chart(document.getElementById("barChart"), {
     type: "line",
     data: {
       labels: dailyLabels,
@@ -95,6 +119,7 @@ async function loadData({ showSpinner = true } = {}) {
     if (showSpinner) {
       hideLoading();
     }
+    isLoadingData = false;
   }
 }
 
@@ -108,22 +133,72 @@ function showWidget() {
   document.getElementById("widgetContent").style.display = "block";
 }
 
+function startAutoRefresh() {
+  if (refreshIntervalId) {
+    clearInterval(refreshIntervalId);
+  }
+
+  refreshIntervalId = setInterval(async () => {
+    try {
+      await loadData({ showSpinner: false });
+    } catch (error) {
+      console.error("[renderer] auto refresh failed", error);
+    }
+  }, REFRESH_INTERVAL_MS);
+}
+
+async function handleManualRefresh() {
+  await loadData({ showSpinner: true });
+}
+
+function setSaveButtonLoading(isLoading) {
+  const saveButton = document.getElementById("saveHandleButton");
+  if (!saveButton) {
+    return;
+  }
+
+  if (!saveButton.dataset.defaultLabel) {
+    saveButton.dataset.defaultLabel = saveButton.textContent || DEFAULT_SAVE_BUTTON_LABEL;
+  }
+
+  if (isLoading) {
+    saveButton.disabled = true;
+    saveButton.innerHTML = '<span class="button-spinner" aria-hidden="true"></span><span>Saving...</span>';
+    return;
+  }
+
+  saveButton.disabled = false;
+  saveButton.textContent = saveButton.dataset.defaultLabel;
+}
+
 async function saveHandle() {
   const handle = document.getElementById("username").value.trim();
   if (!handle) return;
 
   const title = document.querySelector(".setup-card h3");
   try {
-    showLoading();
-    if (!window.api || typeof window.api.setHandle !== "function") {
+    setSaveButtonLoading(true);
+    if (!window.api || typeof window.api.setHandle !== "function" || typeof window.api.getHandle !== "function") {
       throw new Error("App bridge not available");
     }
 
     console.log("[renderer] saveHandle click", { handle });
     window.api.setHandle(handle);
-    console.log("[renderer] saveHandle after setHandle");
+    const savedHandle = window.api.getHandle();
+    if (savedHandle !== handle) {
+      throw new Error("Unable to save handle");
+    }
+    console.log("[renderer] saveHandle after setHandle", { savedHandle });
+
     showWidget();
-    await loadData({ showSpinner: false });
+    startAutoRefresh();
+
+    try {
+      await loadData({ showSpinner: false });
+    } catch (error) {
+      console.error("[renderer] initial refresh after save failed", error);
+    }
+
     console.log("[renderer] saveHandle after loadData");
   } catch (error) {
     console.error("[renderer] saveHandle error", error);
@@ -132,17 +207,24 @@ async function saveHandle() {
       title.innerText = error.message || "Unable to save handle";
     }
   } finally {
-    hideLoading();
+    setSaveButtonLoading(false);
   }
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
   const saveButton = document.getElementById("saveHandleButton");
+  const refreshButton = document.getElementById("refreshButton");
   if (saveButton) {
     saveButton.addEventListener("click", saveHandle);
     console.log("[renderer] bound save button");
   } else {
     console.warn("[renderer] save button not found");
+  }
+  if (refreshButton) {
+    refreshButton.addEventListener("click", handleManualRefresh);
+    console.log("[renderer] bound refresh button");
+  } else {
+    console.warn("[renderer] refresh button not found");
   }
 
   console.log("[renderer] DOMContentLoaded", {
@@ -165,5 +247,6 @@ window.addEventListener("DOMContentLoaded", async () => {
   } else {
     showWidget();
     await loadData();
+    startAutoRefresh();
   }
 });

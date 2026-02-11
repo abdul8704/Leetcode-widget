@@ -40,6 +40,31 @@ canvas {
   -webkit-app-region: no-drag;
 }
 
+.icon-button {
+  width: 21px;
+  height: 21px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.05s ease;
+}
+
+.icon-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}
+
+.icon-button:active {
+  transform: scale(0.96);
+}
+
 .solved-section {
   display: grid;
   grid-template-columns: 120px 1fr;
@@ -87,6 +112,27 @@ canvas {
 .legend {
   display: grid;
   gap: 8px;
+  position: relative;
+  padding-top: 30px;
+}
+
+.legend-refresh {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  justify-content: flex-end;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+
+.legend:hover .legend-refresh,
+.legend:focus-within .legend-refresh {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .legend-row {
@@ -202,6 +248,10 @@ canvas {
   font-size: 13px;
   cursor: pointer;
   transition: opacity 0.2s ease, transform 0.05s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .setup-card button:hover {
@@ -210,6 +260,20 @@ canvas {
 
 .setup-card button:active {
   transform: scale(0.98);
+}
+
+.setup-card button:disabled {
+  opacity: 0.8;
+  cursor: default;
+}
+
+.button-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(15, 15, 15, 0.3);
+  border-top-color: #0f0f0f;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
 /* ------------------ LOADING SCREEN ------------------ */
