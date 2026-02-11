@@ -33,29 +33,38 @@
         </div>
 
         <div class="legend">
-          <!-- <div class="legend-refresh">
-            <button id="refreshButton" class="icon-button" title="Refresh now" aria-label="Refresh now">↻</button>
-          </div> -->
-          <div class="legend-row">
-            <span class="dot easy"></span>
-            <span class="legend-name">Easy</span>
-            <span class="legend-count" id="easyCount"></span>
+          <button
+            id="legendToggleButton"
+            class="icon-button legend-toggle"
+            title="Toggle legend view"
+            aria-label="Show difficulty breakdown">
+            ⇄
+          </button>
+
+          <div id="legend-difficulty">
+            <div class="legend-row">
+              <span class="dot easy"></span>
+              <span class="legend-name">Easy</span>
+              <span class="legend-count" id="easyCount"></span>
+            </div>
+            <div class="legend-row">
+              <span class="dot medium"></span>
+              <span class="legend-name">Medium</span>
+              <span class="legend-count" id="mediumCount"></span>
+            </div>
+            <div class="legend-row">
+              <span class="dot hard"></span>
+              <span class="legend-name">Hard</span>
+              <span class="legend-count" id="hardCount"></span>
+            </div>
           </div>
-          <div class="legend-row">
-            <span class="dot medium"></span>
-            <span class="legend-name">Medium</span>
-            <span class="legend-count" id="mediumCount"></span>
-          </div>
-          <div class="legend-row">
-            <span class="dot hard"></span>
-            <span class="legend-name">Hard</span>
-            <span class="legend-count" id="hardCount"></span>
+
+          <div id="legend-today" class="legend-today">
+            <div class="legend-today-label">Questions Solved Today</div>
+            <div class="legend-today-count" id="legendTodayCount"></div>
           </div>
         </div>
       </div>
-      <center>
-        <div id="dailySolvedCount" class="daily-solved-count"></div>
-      </center>
 
       <div class="bar-wrap">
         <canvas id="barChart"></canvas>

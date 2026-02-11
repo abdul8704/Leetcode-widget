@@ -153,6 +153,53 @@ canvas {
   font-weight: 500;
 }
 
+.legend-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 10px;
+  -webkit-app-region: no-drag;
+}
+
+.legend-today {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.legend-today-label {
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.legend-today-count {
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+/* Default: show today view, hide difficulty; on card hover, swap */
+.card .legend #legend-difficulty {
+  display: none;
+}
+
+.card .legend #legend-today {
+  display: flex;
+}
+
+.card.show-difficulty .legend #legend-difficulty {
+  display: grid;
+}
+
+.card.show-difficulty .legend #legend-today {
+  display: none;
+}
+
 .dot {
   width: 9px;
   height: 9px;

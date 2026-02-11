@@ -42,10 +42,11 @@ contextBridge.exposeInMainWorld("api", {
     const handle = store.get("leetcodeHandle");
     if (!handle) return null;
 
-    const res = await fetch(`https://leetcode-widget-server.onrender.com/leetcode/stats/${handle}`);
+    const res = await fetch(`http://localhost:4000/leetcode/stats/${handle}`);
     if (!res.ok) {
       throw new Error(`Failed to fetch stats (${res.status})`);
     }
+    console.log(res);
     const json = await res.json();
     if (!json || typeof json !== "object") {
       throw new Error("Invalid stats response");

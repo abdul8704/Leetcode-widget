@@ -88,6 +88,10 @@ async function loadData({ showSpinner = true } = {}) {
   // Display daily solved count
   const lastDailyCount = dailyCounts[dailyCounts.length - 1] || 0;
   document.getElementById("dailySolvedCount").innerText = `Number of questions solved today: ${lastDailyCount}`;
+  const legendTodayCountEl = document.getElementById("legendTodayCount");
+  if (legendTodayCountEl) {
+    legendTodayCountEl.innerText = lastDailyCount;
+  }
 
   if (lineChartInstance) {
     lineChartInstance.destroy();
@@ -214,6 +218,8 @@ async function saveHandle() {
 window.addEventListener("DOMContentLoaded", async () => {
   const saveButton = document.getElementById("saveHandleButton");
   const refreshButton = document.getElementById("refreshButton");
+  const legendToggleButton = document.getElementById("legendToggleButton");
+  const cardElement = document.querySelector(".card");
   if (saveButton) {
     saveButton.addEventListener("click", saveHandle);
     console.log("[renderer] bound save button");
@@ -225,6 +231,23 @@ window.addEventListener("DOMContentLoaded", async () => {
     console.log("[renderer] bound refresh button");
   } else {
     console.warn("[renderer] refresh button not found");
+  }
+
+  if (legendToggleButton && cardElement) {
+    legendToggleButton.addEventListener("click", () => {
+      const showDifficulty = cardElement.classList.toggle("show-difficulty");
+      legendToggleButton.setAttribute(
+        "aria-label",
+        showDifficulty ? "Show questions solved today" : "Show difficulty breakdown"
+      );
+      legendToggleButton.setAttribute("title", legendToggleButton.getAttribute("aria-label") || "Toggle legend view");
+    });
+    console.log("[renderer] bound legend toggle button");
+  } else {
+    console.warn("[renderer] legend toggle button or card element not found", {
+      hasButton: !!legendToggleButton,
+      hasCard: !!cardElement
+    });
   }
 
   console.log("[renderer] DOMContentLoaded", {
