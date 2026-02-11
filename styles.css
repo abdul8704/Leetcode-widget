@@ -115,7 +115,7 @@ canvas {
 
 .legend {
   display: grid;
-  gap: 8px;
+  gap: 4px;
   position: relative;
   padding-top: 30px;
 }
