@@ -207,6 +207,7 @@ canvas {
   margin-left: 6px;
   font-size: 26px;
   font-weight: 700;
+  /* margin-right: 4px; */
 }
 
 /* Default: show today view, hide difficulty; on card hover, swap */
@@ -257,15 +258,20 @@ canvas {
 
 /* Collapsed card: show only the "Questions Solved Today" legend in a square */
 .card.collapsed {
-  max-height: 156px;
-  width: 260px;
+  width: 150px;
+  height: auto;
+  max-height: none;
+  min-height: 0;
+  padding: 8px 10px;
 }
 
 .card.collapsed .solved-section {
   display: flex;
-  align-items: center;
-  justify-content: stretch;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: space-between;
   height: 100%;
+  gap: 4px;
 }
 
 .card.collapsed .chart-wrap {
@@ -274,11 +280,12 @@ canvas {
 
 .card.collapsed .legend {
   display: flex;
-  flex-direction: row;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   justify-content: space-between;
   padding-top: 0;
   width: 100%;
+  gap: 6px;
 }
 
 .card.collapsed .legend-toggle {
@@ -291,13 +298,36 @@ canvas {
 
 .card.collapsed .legend #legend-today {
   display: flex;
-  flex-direction: row;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   justify-content: flex-start;
+  width: 100%;
 }
 
 .card.collapsed .bar-wrap {
   display: none;
+}
+
+.card.collapsed .legend-today-label {
+  text-align: left;
+  font-size: 11px;
+  line-height: 1.2;
+  width: 100%;
+}
+
+.card.collapsed .legend-today-count {
+  text-align: right;
+  margin-left: 0;
+  padding-right: 12px;
+  font-size: 24px;
+  width: 100%;
+  align-self: flex-end;
+}
+
+.card.collapsed .legend-actions {
+  justify-content: flex-end;
+  width: 100%;
+  padding-right: 4px;
 }
 .card-toggle {
   font-size: 9px;
