@@ -134,6 +134,11 @@ function showSetupScreen() {
 function showWidget() {
   document.getElementById("setupScreen").style.display = "none";
   document.getElementById("widgetContent").style.display = "block";
+
+  const cardElement = document.getElementById("mainCard");
+  if (cardElement && !cardElement.classList.contains("collapsed")) {
+    cardElement.classList.add("collapsed");
+  }
 }
 
 function startAutoRefresh() {

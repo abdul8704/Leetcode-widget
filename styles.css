@@ -45,13 +45,14 @@ canvas {
 }
 
 .icon-button {
-  width: 21px;
-  height: 21px;
+  width: 15px;
+  height: 15px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.04);
   color: var(--muted);
-  font-size: 12px;
+  width: auto;
+  max-width: 80px;
   line-height: 1;
   display: inline-flex;
   align-items: center;
@@ -192,20 +193,21 @@ canvas {
 
 .legend-today-count {
   color: var(--text);
-  font-size: 20px;
+  font-size: 26px;
   font-weight: 600;
 }
 
 .card.collapsed .legend-today-label {
   flex: 0 0 auto;
   text-align: left;
+  max-width: 80px;
 }
 
 .card.collapsed .legend-today-count {
   flex: 0 0 auto;
   text-align: left;
   margin-left: 6px;
-  font-size: 26px;
+  font-size: 40px;
   font-weight: 700;
 }
 
@@ -258,7 +260,7 @@ canvas {
 /* Collapsed card: show only the "Questions Solved Today" legend in a square */
 .card.collapsed {
   max-height: 156px;
-  width: 260px;
+  width: 160px;
 }
 
 .card.collapsed .solved-section {
@@ -299,9 +301,15 @@ canvas {
 .card.collapsed .bar-wrap {
   display: none;
 }
+
 .card-toggle {
   font-size: 9px;
   -webkit-app-region: no-drag;
+}
+
+.card.collapsed .card-toggle {
+  margin-top: 40px;
+  font-size: 7px;
 }
 
 /* ------------------ SETUP SCREEN ------------------ */
