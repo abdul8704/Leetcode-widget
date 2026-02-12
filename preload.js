@@ -1,9 +1,14 @@
 const { contextBridge } = require("electron");
-const Store = require("electron-store");
-const StoreClass = Store.default || Store;
 
-let store;
+let store = null;
+let inMemoryStore = {
+  leetcodeHandle: null
+};
+
 try {
+  const Store = require("electron-store");
+  const StoreClass = Store.default || Store;
+
   store = new StoreClass({
     projectName: "LeetCodeWidget"
   });
@@ -11,38 +16,40 @@ try {
     storePath: store.path
   });
 } catch (error) {
-  console.error("[preload] store init failed", error);
+  console.error("[preload] store init failed, falling back to in-memory store", error);
 }
 
 contextBridge.exposeInMainWorld("api", {
   getHandle: () => {
-    if (!store) {
-      throw new Error("Store unavailable");
+    if (store) {
+      const handle = store.get("leetcodeHandle");
+      console.log("[preload] getHandle (persistent)", { handle });
+      return handle;
     }
-    const handle = store.get("leetcodeHandle");
-    console.log("[preload] getHandle", { handle });
-    return handle;
+
+    console.warn("[preload] getHandle using in-memory store");
+    return inMemoryStore.leetcodeHandle || null;
   },
 
   setHandle: (handle) => {
-    if (!store) {
-      throw new Error("Store unavailable");
+    if (store) {
+      console.log("[preload] setHandle (persistent)", { handle });
+      store.set("leetcodeHandle", handle);
+      const saved = store.get("leetcodeHandle");
+      console.log("[preload] setHandle saved", { saved });
+      return saved;
     }
-    console.log("[preload] setHandle", { handle });
-    store.set("leetcodeHandle", handle);
-    const saved = store.get("leetcodeHandle");
-    console.log("[preload] setHandle saved", { saved });
-    return saved;
+
+    console.warn("[preload] setHandle using in-memory store", { handle });
+    inMemoryStore.leetcodeHandle = handle;
+    return handle;
   },
 
   fetchStats: async () => {
-    if (!store) {
-      throw new Error("Store unavailable");
-    }
-    const handle = store.get("leetcodeHandle");
+    const handle = store ? store.get("leetcodeHandle") : inMemoryStore.leetcodeHandle;
     if (!handle) return null;
 
-    const res = await fetch(`http://localhost:4000/leetcode/stats/${handle}`);
+    const res = await fetch(`https://leetcode-widget-server.onrender.com/leetcode/stats/${handle}`);
     if (!res.ok) {
       throw new Error(`Failed to fetch stats (${res.status})`);
     }

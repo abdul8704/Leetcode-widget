@@ -33,7 +33,7 @@ body {
   position: relative;
   overflow: hidden;
   max-height: 420px;
-  transition: max-height 0.25s ease, padding 0.25s ease;
+  transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out;
 }
 
 .chart-wrap,

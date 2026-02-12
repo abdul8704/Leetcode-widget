@@ -26,7 +26,8 @@
       "renderer.js",
       "styles.css",
       "package.json",
-      "assets/**"
+      "assets/**",
+      "node_modules/**"
     ],
     "directories": {
       "output": "release"
