@@ -12,6 +12,14 @@ try {
   store = new StoreClass({
     projectName: "LeetCodeWidget"
   });
+  // Clear any existing keys on startup so we always begin
+  // from a clean state (e.g. forget previously saved handles).
+  // try {
+  //   store.clear();
+  //   console.log("[preload] store cleared on startup");
+  // } catch (clearError) {
+  //   console.error("[preload] failed to clear store on startup", clearError);
+  // }
   console.log("[preload] initialized", {
     storePath: store.path
   });
