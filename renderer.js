@@ -5,6 +5,67 @@ let refreshIntervalId = null;
 let isLoadingData = false;
 const DEFAULT_SAVE_BUTTON_LABEL = "Save";
 
+function getCssVar(name) {
+  const bodyStyles = getComputedStyle(document.body);
+  let value = bodyStyles.getPropertyValue(name);
+  if (!value) {
+    const rootStyles = getComputedStyle(document.documentElement);
+    value = rootStyles.getPropertyValue(name);
+  }
+  return (value || "").trim();
+}
+
+function getThemeColors() {
+  const easyColor = getCssVar("--easy") || "#00b8a3";
+  const mediumColor = getCssVar("--medium") || "#ffc01e";
+  const hardColor = getCssVar("--hard") || "#ef4743";
+  const accent = getCssVar("--accent") || easyColor;
+  const accentSoft = getCssVar("--accent-soft") || "rgba(0, 184, 163, 0.15)";
+  return { easyColor, mediumColor, hardColor, accent, accentSoft };
+}
+
+function applyThemeToCharts() {
+  const { easyColor, mediumColor, hardColor, accent, accentSoft } = getThemeColors();
+
+  if (pieChartInstance && pieChartInstance.data && pieChartInstance.data.datasets && pieChartInstance.data.datasets[0]) {
+    const dataset = pieChartInstance.data.datasets[0];
+    dataset.backgroundColor = [easyColor, mediumColor, hardColor];
+    pieChartInstance.update();
+  }
+
+  if (lineChartInstance && lineChartInstance.data && lineChartInstance.data.datasets && lineChartInstance.data.datasets[0]) {
+    const dataset = lineChartInstance.data.datasets[0];
+    dataset.borderColor = accent;
+    dataset.backgroundColor = accentSoft;
+    lineChartInstance.update();
+  }
+}
+
+function setCardLoading(isLoading) {
+  const cardElement = document.getElementById("mainCard");
+  if (!cardElement) {
+    return;
+  }
+
+  if (isLoading) {
+    cardElement.classList.add("loading");
+
+    let overlay = cardElement.querySelector(".card-loading-overlay");
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.className = "card-loading-overlay";
+      overlay.innerHTML = '<div class="loading-spinner loading-spinner--card" aria-hidden="true"></div>';
+      cardElement.appendChild(overlay);
+    }
+  } else {
+    cardElement.classList.remove("loading");
+    const overlay = cardElement.querySelector(".card-loading-overlay");
+    if (overlay) {
+      overlay.remove();
+    }
+  }
+}
+
 function showLoading() {
   document.getElementById("loadingScreen").style.display = "flex";
 }
@@ -19,6 +80,7 @@ async function loadData({ showSpinner = true } = {}) {
   }
   isLoadingData = true;
   console.log("[renderer] loadData start");
+  setCardLoading(true);
   if (showSpinner) {
     showLoading();
   }
@@ -34,6 +96,8 @@ async function loadData({ showSpinner = true } = {}) {
   const hard = Number(data.hard) || 0;
   const total = Number(data.total) || (easy + medium + hard);
 
+  const { easyColor, mediumColor, hardColor, accent, accentSoft } = getThemeColors();
+
   document.getElementById("solvedCount").innerText = total;
   document.getElementById("easyCount").innerText = easy;
   document.getElementById("mediumCount").innerText = medium;
@@ -48,7 +112,7 @@ async function loadData({ showSpinner = true } = {}) {
       labels: ["Easy", "Medium", "Hard"],
       datasets: [{
         data: [easy, medium, hard],
-        backgroundColor: ["#00b8a3", "#ffc01e", "#ef4743"],
+        backgroundColor: [easyColor, mediumColor, hardColor],
         borderWidth: 0,
         spacing: 2,
         borderRadius: 6,
@@ -101,8 +165,8 @@ async function loadData({ showSpinner = true } = {}) {
       labels: dailyLabels,
       datasets: [{
         data: dailyCounts,
-        borderColor: "#00b8a3",
-        backgroundColor: "rgba(0, 184, 163, 0.15)",
+        borderColor: accent,
+        backgroundColor: accentSoft,
         tension: 0.35,
         pointRadius: 3,
         pointHoverRadius: 4,
@@ -122,6 +186,7 @@ async function loadData({ showSpinner = true } = {}) {
     if (showSpinner) {
       hideLoading();
     }
+    setCardLoading(false);
     isLoadingData = false;
   }
 }
@@ -224,6 +289,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   const refreshButton = document.getElementById("refreshButton");
   const legendToggleButton = document.getElementById("legendToggleButton");
   const cardToggleButton = document.getElementById("cardToggleButton");
+  const themeToggleButton = document.getElementById("themeToggleButton");
   const cardElement = document.querySelector(".card");
   if (saveButton) {
     saveButton.addEventListener("click", saveHandle);
@@ -268,6 +334,20 @@ window.addEventListener("DOMContentLoaded", async () => {
       hasButton: !!cardToggleButton,
       hasCard: !!cardElement
     });
+  }
+
+  if (themeToggleButton) {
+    themeToggleButton.addEventListener("click", () => {
+      const isLight = document.body.classList.toggle("light-theme");
+      const label = isLight ? "Switch to dark mode" : "Switch to light mode";
+      themeToggleButton.setAttribute("aria-label", label);
+      themeToggleButton.setAttribute("title", label);
+      themeToggleButton.textContent = isLight ? "🌙" : "🌞";
+      applyThemeToCharts();
+    });
+    console.log("[renderer] bound theme toggle button");
+  } else {
+    console.warn("[renderer] theme toggle button not found");
   }
 
   console.log("[renderer] DOMContentLoaded", {

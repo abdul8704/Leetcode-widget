@@ -8,6 +8,8 @@
   --easy: #00b8a3;
   --medium: #ffc01e;
   --hard: #ef4743;
+  --accent: #00b8a3;
+  --accent-soft: rgba(0, 184, 163, 0.15);
 }
 
 html,
@@ -24,6 +26,18 @@ body {
   color: var(--text);
 }
 
+body.light-theme {
+  --bg: #d4cfc3;
+  --panel: #fffaf2;
+  --text: #141414;
+  --muted: #292828;
+  --easy: #3bb273;
+  --medium: #ffa726;
+  --hard: #ef5350;
+  --accent: #ff8a00;
+  --accent-soft: rgba(255, 138, 0, 0.18);
+}
+
 .card {
   background: var(--bg);
   border-radius: 16px;
@@ -34,6 +48,22 @@ body {
   overflow: hidden;
   max-height: 420px;
   transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out;
+}
+
+.card.loading {
+  pointer-events: none;
+}
+
+.card-loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.65));
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 10;
 }
 
 .chart-wrap,
@@ -175,6 +205,11 @@ canvas {
   -webkit-app-region: no-drag;
 }
 
+.theme-toggle {
+  font-size: 10px;
+  -webkit-app-region: no-drag;
+}
+
 .legend-today {
   display: flex;
   flex-direction: column;
@@ -189,6 +224,11 @@ canvas {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
+}
+
+body.light-theme .center-label,
+body.light-theme .legend-today-label {
+  font-weight: 600;
 }
 
 .legend-today-count {
@@ -284,6 +324,10 @@ canvas {
 }
 
 .card.collapsed .legend-toggle {
+  display: none;
+}
+
+.card.collapsed .theme-toggle {
   display: none;
 }
 
@@ -428,6 +472,11 @@ canvas {
   border-top-color: var(--easy);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+}
+
+.loading-spinner.loading-spinner--card {
+  width: 26px;
+  height: 26px;
 }
 
 @keyframes spin {
