@@ -41,7 +41,7 @@ body.light-theme {
 .card {
   background: var(--bg);
   border-radius: 16px;
-  padding: 12px;
+  padding: 10px;
   color: var(--text);
   -webkit-app-region: drag;
   position: relative;

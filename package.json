@@ -19,6 +19,7 @@
   "build": {
     "appId": "com.abdulaziz.leetcodewidget",
     "productName": "LeetCodeWidget",
+    "icon": "assets/icon.ico",
     "files": [
       "main.js",
       "preload.js",
@@ -33,7 +34,8 @@
       "output": "release"
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "assets/icon.ico"
     },
     "mac": {
       "target": "dmg"

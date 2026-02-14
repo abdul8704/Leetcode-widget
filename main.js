@@ -1,10 +1,15 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, screen } = require("electron");
 const path = require("path");
 
 function createWindow() {
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { x, y } = primaryDisplay.workArea;
+
   const win = new BrowserWindow({
     width: 330,
     height: 420,
+    x: x + 8,
+    y: y + 8,
     frame: false,
     transparent: true,
     alwaysOnTop: false,
