@@ -59,7 +59,7 @@ There is no pre-built installer for macOS or Linux yet. You can build one yourse
 1. **Clone the repository**
    ```bash
    git clone https://github.com/abdul8704/Leetcode-widget.git
-   cd Leetcode-widget/client
+   cd Leetcode-widget
    ```
 
 2. **Install dependencies**
@@ -72,7 +72,7 @@ There is no pre-built installer for macOS or Linux yet. You can build one yourse
    npm run dist
    ```
 
-4. **Find the installer** in the `client/release/` directory:
+4. **Find the installer** in the `release/` directory:
    - macOS → `.dmg` file
    - Linux → `.AppImage` file
 
@@ -91,7 +91,6 @@ There is no pre-built installer for macOS or Linux yet. You can build one yourse
 If you just want to run the app without creating an installer:
 
 ```bash
-cd client
 npm install
 npm start
 ```
@@ -111,3 +110,4 @@ If you want to run the API locally, see the repo root README.
 ## Contributing
 
 Contributions are welcome — feel free to open an issue or submit a pull request.
+
