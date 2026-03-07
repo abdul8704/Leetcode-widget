@@ -1,4 +1,4 @@
-const { contextBridge } = require("electron");
+const { contextBridge, ipcRenderer } = require("electron");
 
 let store = null;
 let inMemoryStore = {
@@ -28,6 +28,10 @@ try {
 }
 
 contextBridge.exposeInMainWorld("api", {
+  resizeWindow: (width, height) => {
+    ipcRenderer.send("resize-window", { width, height });
+  },
+
   getHandle: () => {
     if (store) {
       const handle = store.get("leetcodeHandle");

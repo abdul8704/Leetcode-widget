@@ -1,4 +1,8 @@
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+const EXPANDED_WIDTH = 330;
+const EXPANDED_HEIGHT = 420;
+const COLLAPSED_WIDTH = 180;
+const COLLAPSED_HEIGHT = 180;
 let pieChartInstance = null;
 let lineChartInstance = null;
 let refreshIntervalId = null;
@@ -204,6 +208,10 @@ function showWidget() {
   if (cardElement && !cardElement.classList.contains("collapsed")) {
     cardElement.classList.add("collapsed");
   }
+
+  if (window.api && typeof window.api.resizeWindow === "function") {
+    window.api.resizeWindow(COLLAPSED_WIDTH, COLLAPSED_HEIGHT);
+  }
 }
 
 function startAutoRefresh() {
@@ -327,6 +335,14 @@ window.addEventListener("DOMContentLoaded", async () => {
       const label = isCollapsed ? "Expand widget" : "Collapse widget";
       cardToggleButton.setAttribute("aria-label", label);
       cardToggleButton.setAttribute("title", label);
+
+      if (window.api && typeof window.api.resizeWindow === "function") {
+        if (isCollapsed) {
+          window.api.resizeWindow(COLLAPSED_WIDTH, COLLAPSED_HEIGHT);
+        } else {
+          window.api.resizeWindow(EXPANDED_WIDTH, EXPANDED_HEIGHT);
+        }
+      }
     });
     console.log("[renderer] bound card toggle button");
   } else {
