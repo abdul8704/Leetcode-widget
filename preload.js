@@ -1,4 +1,4 @@
-const { contextBridge } = require("electron");
+const { contextBridge, ipcRenderer } = require("electron");
 const Store = require("electron-store");
 const StoreClass = Store.default || Store;
 
@@ -13,6 +13,19 @@ try {
 } catch (error) {
   console.error("[preload] store init failed", error);
 }
+
+contextBridge.exposeInMainWorld("account", {
+  getStatus: () => ipcRenderer.invoke("account:status"),
+  connect: () => ipcRenderer.invoke("account:connect"),
+  cancelConnect: () => ipcRenderer.invoke("account:cancel"),
+  reopenBrowser: () => ipcRenderer.invoke("account:reopen"),
+  fetchSummary: () => ipcRenderer.invoke("account:summary"),
+  disconnect: () => ipcRenderer.invoke("account:disconnect"),
+  onLinkCode: (callback) => {
+    ipcRenderer.removeAllListeners("account:code");
+    ipcRenderer.on("account:code", (_event, info) => callback(info));
+  }
+});
 
 contextBridge.exposeInMainWorld("api", {
   getHandle: () => {
