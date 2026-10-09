@@ -1,5 +1,6 @@
 const { app, BrowserWindow, screen, ipcMain, Menu } = require("electron");
 const path = require("path");
+const fs = require("fs");
 const account = require("./account");
 
 const COLLAPSED_WIDTH = 180;
@@ -19,9 +20,40 @@ function wrap(fn) {
   };
 }
 
-function setBoundsTopLeft(width, height) {
+const POSITION_FILE = () => path.join(app.getPath("userData"), "window-position.json");
+
+function loadPosition() {
+  try {
+    const { x, y } = JSON.parse(fs.readFileSync(POSITION_FILE(), "utf8"));
+    if (Number.isInteger(x) && Number.isInteger(y)) {
+      // Ignore a saved spot that is no longer on any screen (unplugged monitor, new resolution).
+      const visible = screen.getAllDisplays().some(({ workArea: a }) =>
+        x >= a.x && y >= a.y && x < a.x + a.width - 40 && y < a.y + a.height - 40
+      );
+      if (visible) return { x, y };
+    }
+  } catch {}
   const { x, y } = screen.getPrimaryDisplay().workArea;
-  win.setBounds({ x: x + MARGIN, y: y + MARGIN, width, height });
+  return { x: x + MARGIN, y: y + MARGIN };
+}
+
+function savePosition() {
+  if (!win || win.isDestroyed()) return;
+  const [x, y] = win.getPosition();
+  try {
+    fs.writeFileSync(POSITION_FILE(), JSON.stringify({ x, y }));
+  } catch (error) {
+    console.error("[window] could not save position", error);
+  }
+}
+
+// Resizing keeps the top-left corner where the user left it.
+function setBoundsTopLeft(width, height) {
+  const [cx, cy] = win.getPosition();
+  const a = screen.getDisplayMatching(win.getBounds()).workArea;
+  const x = Math.max(a.x, Math.min(cx, a.x + a.width - width));
+  const y = Math.max(a.y, Math.min(cy, a.y + a.height - height));
+  win.setBounds({ x, y, width, height });
 }
 
 function send(channel, payload) {
@@ -46,14 +78,14 @@ function showMenu() {
 }
 
 function createWindow() {
-  const { x, y } = screen.getPrimaryDisplay().workArea;
+  const { x, y } = loadPosition();
 
   // Start collapsed; the renderer expands the window when it needs the space.
   win = new BrowserWindow({
     width: COLLAPSED_WIDTH,
     height: COLLAPSED_HEIGHT,
-    x: x + MARGIN,
-    y: y + MARGIN,
+    x,
+    y,
     frame: false,
     transparent: true,
     alwaysOnTop: false,
@@ -77,6 +109,7 @@ function createWindow() {
   });
 
   win.webContents.on("context-menu", showMenu);
+  win.on("moved", savePosition);
 }
 
 const SUPPORTED_SIZES = new Set(["180x180", "330x330", "460x420"]);
@@ -102,6 +135,8 @@ app.whenReady().then(() => {
   createWindow();
   app.setLoginItemSettings({
     openAtLogin: true,
-    path: app.getPath('exe')
+    path: process.execPath,
+    // Running from source (npm start): the login item must launch Electron with this app's folder.
+    args: app.isPackaged ? [] : [app.getAppPath()]
   });
 });
