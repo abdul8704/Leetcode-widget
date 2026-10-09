@@ -131,6 +131,15 @@ ipcMain.handle("account:reopen", wrap(() => account.reopenBrowser()));
 ipcMain.handle("account:summary", wrap(() => account.fetchSummary()));
 ipcMain.handle("account:disconnect", wrap(() => account.disconnect()));
 
+// The login item and a manual start must not open two widgets.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    if (win && !win.isDestroyed()) win.show();
+  });
+}
+
 app.whenReady().then(() => {
   createWindow();
   app.setLoginItemSettings({
