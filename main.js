@@ -79,8 +79,13 @@ function createWindow() {
   win.webContents.on("context-menu", showMenu);
 }
 
-ipcMain.on("resize-window", (_event, { width, height }) => {
-  if (win) setBoundsTopLeft(width, height);
+const SUPPORTED_SIZES = new Set(["180x180", "330x330", "460x420"]);
+
+ipcMain.on("resize-window", (_event, bounds) => {
+  const { width, height } = bounds || {};
+  if (win && Number.isInteger(width) && Number.isInteger(height) && SUPPORTED_SIZES.has(`${width}x${height}`)) {
+    setBoundsTopLeft(width, height);
+  }
 });
 ipcMain.on("show-menu", showMenu);
 

@@ -258,6 +258,9 @@ function renderPlatforms(platforms, totals) {
       row.append(dot, name, count);
       row.addEventListener("mouseenter", () => showStats(p, info.label));
       row.addEventListener("mouseleave", () => showStats(combined, "Difficulty"));
+      row.tabIndex = 0;
+      row.addEventListener("focus", () => showStats(p, info.label));
+      row.addEventListener("blur", () => showStats(combined, "Difficulty"));
       rows.appendChild(row);
     });
 
