@@ -105,9 +105,19 @@ let pending = null;
 let lastVerifyUrl = null;
 
 function openVerifyUrl(url) {
-  // Only ever open our own site, whatever the server response says.
-  if (url && new URL(url).origin === new URL(BASE_URL).origin) {
-    return shell.openExternal(url);
+  // verifyUrl comes from the AlgoMentor server we already trust with the token, and its
+  // public origin (NEXT_PUBLIC_APP_URL) can differ from BASE_URL, so only the scheme is
+  // checked: never hand the OS anything but a web link.
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+      return shell.openExternal(parsed.toString()).catch((error) => {
+        console.error("[account] openExternal failed", error);
+      });
+    }
+    console.error("[account] refusing to open non-web verify URL", parsed.protocol);
+  } catch (error) {
+    console.error("[account] invalid verify URL", error);
   }
 }
 
