@@ -72,27 +72,78 @@ function isCollapsedPref() {
   return readPref("collapsed") !== "false";
 }
 
-/** Sizes the window for the current state; setup screens always use the full card. */
-function applyLayout() {
-  const onWidget = $("widgetContent").style.display !== "none";
+const RESIZE_MS = 380;
+const FADE_MS = 140;
+let layoutToken = 0;
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function setCardSize(size) {
+  $("card").style.width = `${size.width}px`;
+  $("card").style.height = `${size.height}px`;
+}
+
+function refreshCharts() {
+  // The canvases were hidden while collapsed; let Chart.js re-measure.
+  requestAnimationFrame(() => {
+    lineChartInstance && lineChartInstance.resize();
+    pieChartInstance && pieChartInstance.resize();
+  });
+}
+
+/**
+ * Sizes the window and card for the current state; setup screens always use the full card.
+ * With animate, the card grows/shrinks smoothly inside a window that is resized only once:
+ * up front when expanding, after the card has shrunk when collapsing.
+ */
+async function applyLayout({ animate = false } = {}) {
+  const token = ++layoutToken;
+  const card = $("card");
+  const content = $("widgetContent");
+  const onWidget = content.style.display !== "none";
   const collapsed = onWidget && isCollapsedPref();
-  $("card").classList.toggle("collapsed", collapsed);
   const size = collapsed ? COLLAPSED_SIZE : EXPANDED_SIZE;
-  window.widget.resize(size.width, size.height);
   // Keeps the right-click menu's Connect/Disconnect item in step.
   window.widget.setState(mode === "account");
-  if (!collapsed && lineChartInstance) {
-    // The canvases were hidden while collapsed; let Chart.js re-measure.
-    requestAnimationFrame(() => {
-      lineChartInstance && lineChartInstance.resize();
-      pieChartInstance && pieChartInstance.resize();
-    });
+
+  const wasCollapsed = card.classList.contains("collapsed");
+  if (!animate || wasCollapsed === collapsed) {
+    card.classList.remove("animating");
+    content.style.opacity = "";
+    card.classList.toggle("collapsed", collapsed);
+    setCardSize(size);
+    window.widget.resize(size.width, size.height);
+    if (!collapsed) refreshCharts();
+    return;
   }
+
+  card.classList.add("animating");
+  content.style.opacity = "0";
+  await wait(FADE_MS);
+  if (token !== layoutToken) return;
+
+  if (!collapsed) {
+    window.widget.resize(size.width, size.height);
+    card.classList.remove("collapsed");
+    refreshCharts();
+  } else {
+    card.classList.add("collapsed");
+  }
+  setCardSize(size);
+  await wait(RESIZE_MS);
+  if (token !== layoutToken) return;
+
+  if (collapsed) window.widget.resize(size.width, size.height);
+  content.style.opacity = "1";
+  await wait(FADE_MS);
+  if (token !== layoutToken) return;
+  card.classList.remove("animating");
+  content.style.opacity = "";
 }
 
 function setCollapsed(collapsed) {
   writePref("collapsed", String(collapsed));
-  applyLayout();
+  applyLayout({ animate: true });
 }
 
 function applyTheme() {
