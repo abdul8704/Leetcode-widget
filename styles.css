@@ -70,6 +70,15 @@ button {
   padding: 10px;
   position: relative;
   overflow: hidden;
+  /* Drag the widget by any empty area; controls opt out below. */
+  -webkit-app-region: drag;
+}
+
+button,
+input,
+.platform-row,
+.line-wrap {
+  -webkit-app-region: no-drag;
 }
 
 /* ------------------ TOP PANEL ------------------ */
@@ -311,7 +320,6 @@ button {
   display: flex;
   align-items: center;
   height: 100%;
-  gap: 10px;
 }
 
 .today-mini-label {
@@ -330,20 +338,20 @@ body.light-theme .column-title {
 }
 
 .today-mini-count {
-  flex: 1;
-  text-align: center;
+  margin-left: 6px;
   font-size: 40px;
   font-weight: 700;
-  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 #expandButton {
   position: absolute;
-  right: 8px;
-  bottom: 8px;
-  height: 12px;
+  right: 9px;
+  bottom: 9px;
+  width: 15px;
+  height: 15px;
+  padding: 0;
   font-size: 7px;
-  padding: 0 4px;
 }
 
 /* ------------------ SETUP ------------------ */

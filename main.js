@@ -1,8 +1,13 @@
 const { app, BrowserWindow, Menu, ipcMain, screen } = require("electron");
 const path = require("path");
+const Store = require("electron-store");
 const account = require("./account");
 
-// The widget sits in the top-left corner of the primary display's work area.
+const StoreClass = Store.default || Store;
+const windowStore = new StoreClass({ projectName: "LeetCodeWidget", name: "window" });
+
+// The widget starts in the top-left corner of the primary display's work area;
+// once dragged, its top-left corner stays where the user put it.
 const MARGIN = 8;
 const START_WIDTH = 400;
 const START_HEIGHT = 290;
@@ -27,14 +32,27 @@ ipcMain.handle("account:reopen", wrap(() => account.reopenBrowser()));
 ipcMain.handle("account:summary", wrap(() => account.fetchSummary()));
 ipcMain.handle("account:disconnect", wrap(() => account.disconnect()));
 
-function cornerBounds(width, height) {
+function defaultPosition() {
   const { x, y } = screen.getPrimaryDisplay().workArea;
-  return { x: x + MARGIN, y: y + MARGIN, width: Math.round(width), height: Math.round(height) };
+  return { x: x + MARGIN, y: y + MARGIN };
+}
+
+/** The saved position, if it still lands on a connected display. */
+function savedPosition() {
+  const pos = windowStore.get("position");
+  if (!pos || !Number.isFinite(pos.x) || !Number.isFinite(pos.y)) return null;
+  const onScreen = screen.getAllDisplays().some(({ workArea: a }) =>
+    pos.x >= a.x - 20 && pos.y >= a.y - 20 && pos.x < a.x + a.width - 40 && pos.y < a.y + a.height - 40
+  );
+  return onScreen ? pos : null;
 }
 
 function createWindow() {
+  const start = savedPosition() || defaultPosition();
   const win = new BrowserWindow({
-    ...cornerBounds(START_WIDTH, START_HEIGHT),
+    ...start,
+    width: START_WIDTH,
+    height: START_HEIGHT,
     frame: false,
     transparent: true,
     alwaysOnTop: false,
@@ -60,21 +78,46 @@ function createWindow() {
   };
   setTimeout(showOnce, 3000);
 
+  // Collapsing/expanding keeps the top-left corner in place.
   ipcMain.on("window:resize", (_event, { width, height }) => {
-    win.setBounds(cornerBounds(width, height));
+    const [x, y] = win.getPosition();
+    win.setBounds({ x, y, width: Math.round(width), height: Math.round(height) });
     showOnce();
   });
 
-  ipcMain.on("window:menu", (event, { connected }) => {
-    const send = (action) => () => event.sender.send("menu:action", action);
+  win.on("moved", () => {
+    const [x, y] = win.getPosition();
+    windowStore.set("position", { x, y });
+  });
+
+  let connected = false;
+  const showMenu = () => {
+    const send = (action) => () => win.webContents.send("menu:action", action);
     Menu.buildFromTemplate([
       { label: "Refresh", click: send("refresh") },
       connected
         ? { label: "Disconnect AlgoMentor", click: send("disconnect") }
         : { label: "Connect AlgoMentor", click: send("connect") },
+      { label: "Reset position", click: () => {
+        windowStore.delete("position");
+        win.setPosition(defaultPosition().x, defaultPosition().y);
+      } },
       { type: "separator" },
       { label: "Quit widget", click: () => app.quit() }
     ]).popup({ window: win });
+  };
+
+  ipcMain.on("window:menu", (_event, state) => {
+    connected = !!state.connected;
+    showMenu();
+  });
+  ipcMain.on("window:state", (_event, state) => {
+    connected = !!state.connected;
+  });
+  // Right-clicks on drag regions go to the OS window menu (Windows); show ours instead.
+  win.on("system-context-menu", (event) => {
+    event.preventDefault();
+    showMenu();
   });
 
   win.webContents.on("console-message", (_event, _level, message, line, sourceId) => {
@@ -86,10 +129,15 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(() => {
+// One widget at a time: a second launch (e.g. login item + manual start) just exits.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else app.whenReady().then(() => {
   createWindow();
+  // Start with Windows/macOS. An unpackaged run (npm start) must also pass the app folder to electron.exe.
   app.setLoginItemSettings({
     openAtLogin: true,
-    path: app.getPath('exe')
+    path: process.execPath,
+    args: app.isPackaged ? [] : [app.getAppPath()]
   });
 });

@@ -30,6 +30,7 @@ contextBridge.exposeInMainWorld("account", {
 contextBridge.exposeInMainWorld("widget", {
   resize: (width, height) => ipcRenderer.send("window:resize", { width, height }),
   showMenu: (connected) => ipcRenderer.send("window:menu", { connected }),
+  setState: (connected) => ipcRenderer.send("window:state", { connected }),
   onMenuAction: (callback) => {
     ipcRenderer.removeAllListeners("menu:action");
     ipcRenderer.on("menu:action", (_event, action) => callback(action));

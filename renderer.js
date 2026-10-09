@@ -79,6 +79,8 @@ function applyLayout() {
   $("card").classList.toggle("collapsed", collapsed);
   const size = collapsed ? COLLAPSED_SIZE : EXPANDED_SIZE;
   window.widget.resize(size.width, size.height);
+  // Keeps the right-click menu's Connect/Disconnect item in step.
+  window.widget.setState(mode === "account");
   if (!collapsed && lineChartInstance) {
     // The canvases were hidden while collapsed; let Chart.js re-measure.
     requestAnimationFrame(() => {
