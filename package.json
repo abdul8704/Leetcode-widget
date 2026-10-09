@@ -1,6 +1,6 @@
 {
   "name": "leetcode-widget",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "main": "main.js",
   "type": "commonjs",
   "scripts": {
@@ -19,6 +19,7 @@
   "build": {
     "appId": "com.abdulaziz.leetcodewidget",
     "productName": "LeetCodeWidget",
+    "icon": "assets/icon.ico",
     "files": [
       "main.js",
       "account.js",
@@ -27,13 +28,15 @@
       "renderer.js",
       "styles.css",
       "package.json",
-      "assets/**"
+      "assets/**",
+      "node_modules/**"
     ],
     "directories": {
       "output": "release"
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "assets/icon.ico"
     },
     "mac": {
       "target": "dmg"

@@ -8,6 +8,8 @@
   --easy: #00b8a3;
   --medium: #ffc01e;
   --hard: #ef4743;
+  --accent: #00b8a3;
+  --accent-soft: rgba(0, 184, 163, 0.15);
 }
 
 html,
@@ -24,12 +26,44 @@ body {
   color: var(--text);
 }
 
+body.light-theme {
+  --bg: #d4cfc3;
+  --panel: #fffaf2;
+  --text: #141414;
+  --muted: #292828;
+  --easy: #3bb273;
+  --medium: #ffa726;
+  --hard: #ef5350;
+  --accent: #203354;
+  --accent-soft: rgba(255, 138, 0, 0.18);
+}
+
 .card {
   background: var(--bg);
   border-radius: 16px;
-  padding: 12px;
+  padding: 10px;
   color: var(--text);
   -webkit-app-region: drag;
+  position: relative;
+  overflow: hidden;
+  max-height: 420px;
+  transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out;
+}
+
+.card.loading {
+  pointer-events: none;
+}
+
+.card-loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.65));
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 10;
 }
 
 .chart-wrap,
@@ -41,13 +75,14 @@ canvas {
 }
 
 .icon-button {
-  width: 21px;
-  height: 21px;
+  width: 15px;
+  height: 15px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.04);
   color: var(--muted);
-  font-size: 12px;
+  width: auto;
+  max-width: 80px;
   line-height: 1;
   display: inline-flex;
   align-items: center;
@@ -110,10 +145,22 @@ canvas {
 }
 
 .legend {
-  display: grid;
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   position: relative;
-  padding-top: 30px;
+  padding-top: 16px;
+}
+
+.legend-main {
+  flex: 1 1 auto;
+}
+
+.legend-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
 }
 
 .legend-refresh {
@@ -153,6 +200,57 @@ canvas {
   font-weight: 500;
 }
 
+.menu-toggle {
+  font-size: 10px;
+  -webkit-app-region: no-drag;
+}
+
+.theme-toggle {
+  font-size: 10px;
+  -webkit-app-region: no-drag;
+}
+
+.legend-today {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.legend-today-label {
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+body.light-theme .center-label,
+body.light-theme .legend-today-label {
+  font-weight: 600;
+}
+
+.legend-today-count {
+  color: var(--text);
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.card.collapsed .legend-today-label {
+  flex: 0 0 auto;
+  text-align: left;
+  max-width: 80px;
+}
+
+.card.collapsed .legend-today-count {
+  flex: 0 0 auto;
+  text-align: left;
+  margin-left: 6px;
+  font-size: 40px;
+  font-weight: 700;
+}
+
 .dot {
   width: 9px;
   height: 9px;
@@ -180,6 +278,58 @@ canvas {
 .bar-wrap canvas {
   width: 100% !important;
   height: 100% !important;
+}
+
+/* Collapsed card: show only the "Questions Solved Today" legend in a square */
+.card.collapsed {
+  max-height: 156px;
+  width: 160px;
+}
+
+.card.collapsed .solved-section {
+  display: flex;
+  align-items: center;
+  justify-content: stretch;
+  height: 100%;
+}
+
+.card.collapsed .chart-wrap {
+  display: none;
+}
+
+.card.collapsed .legend {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0;
+  width: 100%;
+}
+
+.card.collapsed .theme-toggle,
+.card.collapsed .menu-toggle {
+  display: none;
+}
+
+.card.collapsed .legend #legend-today {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.card.collapsed .bar-wrap {
+  display: none;
+}
+
+.card-toggle {
+  font-size: 9px;
+  -webkit-app-region: no-drag;
+}
+
+.card.collapsed .card-toggle {
+  margin-top: 40px;
+  font-size: 7px;
 }
 
 /* ------------------ SETUP SCREEN ------------------ */
@@ -300,6 +450,11 @@ canvas {
   animation: spin 0.8s linear infinite;
 }
 
+.loading-spinner.loading-spinner--card {
+  width: 26px;
+  height: 26px;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
@@ -319,16 +474,125 @@ canvas {
   padding-top: 3px;
 }
 
-/* ------------------ ALGOMENTOR ACCOUNT ------------------ */
+/* ------------------ EXPANDED LAYOUT ------------------ */
 
-body {
-  overflow-y: auto;
-  scrollbar-width: none;
-}
-
-body::-webkit-scrollbar {
+.today-strip {
   display: none;
 }
+
+.card:not(.collapsed) .today-strip {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0 4px 8px;
+}
+
+.today-strip-label {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.today-strip-count {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.today-strip-platforms {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.today-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.today-chip .dot {
+  width: 7px;
+  height: 7px;
+}
+
+.card:not(.collapsed) .legend-today {
+  display: none;
+}
+
+.card.collapsed .legend-cols {
+  display: none;
+}
+
+.legend-main {
+  min-width: 0;
+}
+
+.legend-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.legend-col {
+  min-width: 0;
+}
+
+.legend-col-title {
+  min-height: 12px;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.legend-col .legend-row {
+  margin-bottom: 4px;
+}
+
+.legend-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#platformRows .legend-row {
+  margin: 0 -5px 4px;
+  padding: 1px 5px;
+  border-radius: 6px;
+  cursor: default;
+}
+
+#platformRows .legend-row:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+#platformRows .legend-row:hover .legend-name {
+  color: var(--text);
+}
+
+body.light-theme #platformRows .legend-row:hover {
+  background: rgba(0, 0, 0, 0.07);
+}
+
+/* Username-only installs have no platform data. */
+.card.legacy #platformCol {
+  display: none;
+}
+
+.card.legacy .legend-cols {
+  grid-template-columns: 1fr;
+}
+
+/* ------------------ CONNECT SCREEN ------------------ */
 
 .setup-note {
   margin: 8px 0 0;
@@ -337,28 +601,25 @@ body::-webkit-scrollbar {
   line-height: 1.4;
 }
 
-.setup-card .link-button,
-.account-footer .link-button {
+.setup-card .link-button {
   -webkit-app-region: no-drag;
+  display: block;
+  margin: 10px auto 0;
+  width: auto;
+  padding: 0;
   background: none;
   border: none;
   color: var(--muted);
   font-family: inherit;
   font-size: 12px;
-  cursor: pointer;
-  padding: 0;
-  width: auto;
+  font-weight: 500;
   text-decoration: underline;
+  cursor: pointer;
 }
 
-.setup-card .link-button {
-  display: block;
-  margin: 10px auto 0;
-}
-
-.setup-card .link-button:hover,
-.account-footer .link-button:hover {
+.setup-card .link-button:hover {
   color: var(--text);
+  opacity: 1;
 }
 
 .link-code {
@@ -369,6 +630,10 @@ body::-webkit-scrollbar {
   font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
   font-size: 22px;
   letter-spacing: 0.18em;
+}
+
+body.light-theme .link-code {
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .waiting-row {
@@ -390,105 +655,6 @@ body::-webkit-scrollbar {
   animation: spin 0.8s linear infinite;
 }
 
-.today-card {
-  -webkit-app-region: no-drag;
-  background: var(--panel);
-  border-radius: 14px;
-  padding: 10px 12px;
-  margin-bottom: 8px;
-  cursor: pointer;
-  user-select: none;
-}
-
-.today-head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.today-count {
-  font-size: 24px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-
-.today-label {
-  flex: 1;
-  font-size: 13px;
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.today-chevron {
-  color: var(--muted);
-  font-size: 12px;
-  transition: transform 0.18s ease;
-}
-
-.today-card[aria-expanded="true"] .today-chevron {
-  transform: rotate(180deg);
-}
-
-.today-breakdown {
-  margin-top: 8px;
-  display: grid;
-  gap: 6px;
-}
-
-.platform-row {
-  display: grid;
-  grid-template-columns: 10px 1fr auto;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-}
-
-.platform-row .platform-name {
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.platform-row .platform-count {
-  font-weight: 500;
-}
-
-.today-empty {
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.platform-list {
-  -webkit-app-region: no-drag;
-  margin-top: 8px;
-  background: var(--panel);
-  border-radius: 14px;
-  padding: 10px;
-  display: grid;
-  gap: 8px;
-}
-
-.platform-list .platform-row {
-  grid-template-columns: 10px 76px 1fr auto;
-}
-
-.platform-bar {
-  height: 5px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.07);
-  overflow: hidden;
-}
-
-.platform-bar > span {
-  display: block;
-  height: 100%;
-  border-radius: 3px;
-}
-
-.account-footer {
-  -webkit-app-region: no-drag;
-  margin-top: 8px;
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: var(--muted);
+.setup-screen {
+  border-radius: 16px;
 }

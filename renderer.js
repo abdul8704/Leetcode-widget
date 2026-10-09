@@ -1,17 +1,25 @@
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+const EXPANDED_WIDTH = 460;
+const EXPANDED_HEIGHT = 420;
+const COLLAPSED_WIDTH = 180;
+const COLLAPSED_HEIGHT = 180;
+const SETUP_WIDTH = 330;
+const SETUP_HEIGHT = 330;
+const THEME_KEY = "widgetTheme";
+const DEFAULT_SAVE_BUTTON_LABEL = "Save";
+
 let pieChartInstance = null;
 let lineChartInstance = null;
 let refreshIntervalId = null;
 let isLoadingData = false;
 // "account" = connected to AlgoMentor, "legacy" = LeetCode username only.
 let mode = null;
-const DEFAULT_SAVE_BUTTON_LABEL = "Save";
 
 const PLATFORMS = {
   leetcode: { label: "LeetCode", color: "#ffa116" },
   codeforces: { label: "Codeforces", color: "#3b9ae1" },
-  atcoder: { label: "AtCoder", color: "#c9c9c9" },
-  cses: { label: "CSES", color: "#7aa2f7" }
+  atcoder: { label: "AtCoder", color: "#b5b5b5" },
+  cses: { label: "CSES", color: "#a78bfa" }
 };
 
 function platformInfo(key) {
@@ -22,6 +30,66 @@ function $(id) {
   return document.getElementById(id);
 }
 
+function getCssVar(name) {
+  const bodyStyles = getComputedStyle(document.body);
+  let value = bodyStyles.getPropertyValue(name);
+  if (!value) {
+    const rootStyles = getComputedStyle(document.documentElement);
+    value = rootStyles.getPropertyValue(name);
+  }
+  return (value || "").trim();
+}
+
+function getThemeColors() {
+  const easyColor = getCssVar("--easy") || "#00b8a3";
+  const mediumColor = getCssVar("--medium") || "#ffc01e";
+  const hardColor = getCssVar("--hard") || "#ef4743";
+  const accent = getCssVar("--accent") || easyColor;
+  const accentSoft = getCssVar("--accent-soft") || "rgba(0, 184, 163, 0.15)";
+  return { easyColor, mediumColor, hardColor, accent, accentSoft };
+}
+
+function applyThemeToCharts() {
+  const { easyColor, mediumColor, hardColor, accent, accentSoft } = getThemeColors();
+
+  if (pieChartInstance && pieChartInstance.data.datasets[0]) {
+    pieChartInstance.data.datasets[0].backgroundColor = [easyColor, mediumColor, hardColor];
+    pieChartInstance.update();
+  }
+
+  if (lineChartInstance && lineChartInstance.data.datasets[0]) {
+    const dataset = lineChartInstance.data.datasets[0];
+    dataset.borderColor = accent;
+    dataset.backgroundColor = accentSoft;
+    lineChartInstance.update();
+  }
+}
+
+function setCardLoading(isLoading) {
+  const cardElement = $("mainCard");
+  if (!cardElement) {
+    return;
+  }
+
+  if (isLoading) {
+    cardElement.classList.add("loading");
+
+    let overlay = cardElement.querySelector(".card-loading-overlay");
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.className = "card-loading-overlay";
+      overlay.innerHTML = '<div class="loading-spinner loading-spinner--card" aria-hidden="true"></div>';
+      cardElement.appendChild(overlay);
+    }
+  } else {
+    cardElement.classList.remove("loading");
+    const overlay = cardElement.querySelector(".card-loading-overlay");
+    if (overlay) {
+      overlay.remove();
+    }
+  }
+}
+
 function showLoading() {
   $("loadingScreen").style.display = "flex";
 }
@@ -30,9 +98,16 @@ function hideLoading() {
   $("loadingScreen").style.display = "none";
 }
 
+function resizeWindow(width, height) {
+  if (window.api && typeof window.api.resizeWindow === "function") {
+    window.api.resizeWindow(width, height);
+  }
+}
+
 // ---------------- charts ----------------
 
 function drawDoughnut(easy, medium, hard) {
+  const { easyColor, mediumColor, hardColor } = getThemeColors();
   if (pieChartInstance) {
     pieChartInstance.destroy();
   }
@@ -42,7 +117,7 @@ function drawDoughnut(easy, medium, hard) {
       labels: ["Easy", "Medium", "Hard"],
       datasets: [{
         data: [easy, medium, hard],
-        backgroundColor: ["#00b8a3", "#ffc01e", "#ef4743"],
+        backgroundColor: [easyColor, mediumColor, hardColor],
         borderWidth: 0,
         spacing: 2,
         borderRadius: 6,
@@ -61,7 +136,9 @@ function drawDoughnut(easy, medium, hard) {
   });
 }
 
-function drawLine(labels, counts) {
+/** `details[i].platforms` (optional) is listed in the tooltip for point i. */
+function drawLine(labels, counts, details) {
+  const { accent, accentSoft } = getThemeColors();
   if (lineChartInstance) {
     lineChartInstance.destroy();
   }
@@ -71,89 +148,123 @@ function drawLine(labels, counts) {
       labels,
       datasets: [{
         data: counts,
-        borderColor: "#00b8a3",
-        backgroundColor: "rgba(0, 184, 163, 0.15)",
+        borderColor: accent,
+        backgroundColor: accentSoft,
         tension: 0.35,
         pointRadius: 3,
-        pointHoverRadius: 4,
+        pointHoverRadius: 5,
+        pointHitRadius: 14,
         fill: true
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      interaction: { mode: "nearest", intersect: true },
       scales: {
         y: { beginAtZero: true, ticks: { precision: 0 } }
       },
-      plugins: { legend: { display: false } }
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          displayColors: false,
+          callbacks: {
+            label(context) {
+              const lines = [`${context.parsed.y} solved`];
+              const day = details && details[context.dataIndex];
+              if (day && day.platforms) {
+                day.platforms.forEach((p) => lines.push(`${platformInfo(p.platform).label}  ${p.count}`));
+              }
+              return lines;
+            }
+          }
+        }
+      }
     }
   });
 }
 
-function setDifficultyCounts(total, easy, medium, hard) {
-  $("solvedCount").innerText = total;
+function setDifficulty(easy, medium, hard) {
   $("easyCount").innerText = easy;
   $("mediumCount").innerText = medium;
   $("hardCount").innerText = hard;
 }
 
+function setRing(total, easy, medium, hard) {
+  $("solvedCount").innerText = total;
+  if (pieChartInstance) {
+    pieChartInstance.data.datasets[0].data = [easy, medium, hard];
+    pieChartInstance.update("none");
+  }
+}
+
 // ---------------- AlgoMentor (account) mode ----------------
 
-function platformRow(key, count, { bar } = {}) {
-  const info = platformInfo(key);
-  const row = document.createElement("div");
-  row.className = "platform-row";
-
-  const dot = document.createElement("span");
-  dot.className = "dot";
-  dot.style.background = info.color;
-
-  const name = document.createElement("span");
-  name.className = "platform-name";
-  name.textContent = info.label;
-
-  const value = document.createElement("span");
-  value.className = "platform-count";
-  value.textContent = count;
-
-  row.append(dot, name);
-  if (bar !== undefined) {
-    const track = document.createElement("div");
-    track.className = "platform-bar";
-    const fill = document.createElement("span");
-    fill.style.width = `${bar}%`;
-    fill.style.background = info.color;
-    track.appendChild(fill);
-    row.appendChild(track);
-  }
-  row.appendChild(value);
-  return row;
-}
-
 function renderToday(solvedToday) {
-  $("todayCount").textContent = solvedToday.total;
+  $("legendTodayCount").innerText = solvedToday.total;
+  $("todayStripCount").innerText = solvedToday.total;
 
-  const list = $("todayBreakdown");
-  list.replaceChildren();
-  if (!solvedToday.platforms.length) {
-    const empty = document.createElement("div");
-    empty.className = "today-empty";
-    empty.textContent = "Nothing solved yet today.";
-    list.appendChild(empty);
-    return;
-  }
-  solvedToday.platforms.forEach((p) => list.appendChild(platformRow(p.platform, p.count)));
+  const chips = $("todayStripPlatforms");
+  chips.replaceChildren();
+  solvedToday.platforms.forEach((p) => {
+    const info = platformInfo(p.platform);
+    const chip = document.createElement("span");
+    chip.className = "today-chip";
+    const dot = document.createElement("span");
+    dot.className = "dot";
+    dot.style.background = info.color;
+    chip.append(dot, `${info.label} ${p.count}`);
+    chips.appendChild(chip);
+  });
 }
 
-function renderPlatforms(platforms, total) {
-  const list = $("platformList");
-  list.replaceChildren();
-  const active = platforms.filter((p) => p.solved > 0).sort((a, b) => b.solved - a.solved);
-  list.style.display = active.length ? "grid" : "none";
-  active.forEach((p) => {
-    const pct = total > 0 ? Math.max(3, Math.round((p.solved / total) * 100)) : 0;
-    list.appendChild(platformRow(p.platform, p.solved, { bar: pct }));
-  });
+function renderPlatforms(platforms, totals) {
+  const rows = $("platformRows");
+  rows.replaceChildren();
+
+  const combined = {
+    solved: totals.solved,
+    easy: totals.easy,
+    medium: totals.medium,
+    hard: totals.hard
+  };
+
+  const showStats = (stats, title) => {
+    setDifficulty(stats.easy, stats.medium, stats.hard);
+    setRing(stats.solved, stats.easy, stats.medium, stats.hard);
+    $("difficultyTitle").textContent = title;
+  };
+
+  platforms
+    .filter((p) => p.solved > 0)
+    .sort((a, b) => b.solved - a.solved)
+    .forEach((p) => {
+      const info = platformInfo(p.platform);
+      const row = document.createElement("div");
+      row.className = "legend-row";
+
+      const dot = document.createElement("span");
+      dot.className = "dot";
+      dot.style.background = info.color;
+
+      const name = document.createElement("span");
+      name.className = "legend-name";
+      name.textContent = info.label;
+
+      const count = document.createElement("span");
+      count.className = "legend-count";
+      count.textContent = p.solved;
+
+      row.append(dot, name, count);
+      row.addEventListener("mouseenter", () => showStats(p, info.label));
+      row.addEventListener("mouseleave", () => showStats(combined, "Difficulty"));
+      row.tabIndex = 0;
+      row.addEventListener("focus", () => showStats(p, info.label));
+      row.addEventListener("blur", () => showStats(combined, "Difficulty"));
+      rows.appendChild(row);
+    });
+
+  showStats(combined, "Difficulty");
 }
 
 function renderSummary(data) {
@@ -163,10 +274,9 @@ function renderSummary(data) {
   const hard = Number(totals.hard) || 0;
   const total = Number(totals.solved) || (easy + medium + hard);
 
-  setDifficultyCounts(total, easy, medium, hard);
   drawDoughnut(easy, medium, hard);
+  renderPlatforms(data.platforms || [], { solved: total, easy, medium, hard });
   renderToday(data.solvedToday || { total: 0, platforms: [] });
-  renderPlatforms(data.platforms || [], total);
 
   const days = data.last7Days || [];
   drawLine(
@@ -174,17 +284,9 @@ function renderSummary(data) {
       const [y, m, day] = d.date.split("-").map(Number);
       return new Date(Date.UTC(y, m - 1, day)).toLocaleString("en-US", { timeZone: "UTC", month: "short", day: "numeric" });
     }),
-    days.map((d) => Number(d.count) || 0)
+    days.map((d) => Number(d.count) || 0),
+    days
   );
-
-  $("accountName").textContent = data.user && data.user.name ? `AlgoMentor · ${data.user.name}` : "AlgoMentor";
-}
-
-function toggleToday() {
-  const card = $("todayCard");
-  const expanded = card.getAttribute("aria-expanded") === "true";
-  card.setAttribute("aria-expanded", String(!expanded));
-  $("todayBreakdown").style.display = expanded ? "none" : "grid";
 }
 
 async function loadAccountData() {
@@ -216,8 +318,9 @@ async function loadLegacyData() {
   const hard = Number(data.hard) || 0;
   const total = Number(data.total) || (easy + medium + hard);
 
-  setDifficultyCounts(total, easy, medium, hard);
+  setDifficulty(easy, medium, hard);
   drawDoughnut(easy, medium, hard);
+  $("solvedCount").innerText = total;
 
   const hasDailyObject = data.daily && !Array.isArray(data.daily) && typeof data.daily === "object";
   let dailyLabels = [];
@@ -239,9 +342,11 @@ async function loadLegacyData() {
   }
 
   const lastDailyCount = dailyCounts[dailyCounts.length - 1] || 0;
-  $("dailySolvedCount").innerText = `Number of questions solved today: ${lastDailyCount}`;
+  $("legendTodayCount").innerText = lastDailyCount;
+  $("todayStripCount").innerText = lastDailyCount;
+  $("todayStripPlatforms").replaceChildren();
 
-  drawLine(dailyLabels, dailyCounts);
+  drawLine(dailyLabels, dailyCounts, null);
 }
 
 // ---------------- shared flow ----------------
@@ -252,6 +357,7 @@ async function loadData({ showSpinner = true } = {}) {
   }
   isLoadingData = true;
   console.log("[renderer] loadData start", { mode });
+  setCardLoading(true);
   if (showSpinner) {
     showLoading();
   }
@@ -265,6 +371,7 @@ async function loadData({ showSpinner = true } = {}) {
     if (showSpinner) {
       hideLoading();
     }
+    setCardLoading(false);
     isLoadingData = false;
   }
 }
@@ -280,23 +387,26 @@ function showSetupScreen(message) {
   $("widgetContent").style.display = "none";
   showSetupPane("setupConnect");
   $("setupTitle").innerText = message || "Connect your AlgoMentor account";
+  resizeWindow(SETUP_WIDTH, SETUP_HEIGHT);
 }
 
 function showWidget() {
   $("setupScreen").style.display = "none";
   $("widgetContent").style.display = "block";
-  const isAccount = mode === "account";
-  $("todayCard").style.display = isAccount ? "block" : "none";
-  $("accountFooter").style.display = "flex";
-  // Account mode offers Disconnect; a username-only install offers to connect.
-  $("disconnectButton").textContent = isAccount ? "Disconnect" : "Connect AlgoMentor";
-  if (!isAccount) {
-    $("accountName").textContent = `LeetCode · ${window.api.getHandle() || ""}`;
-  }
-  $("dailySolvedCount").style.display = isAccount ? "none" : "block";
-  if (!isAccount) {
-    $("platformList").style.display = "none";
-  }
+
+  const cardElement = $("mainCard");
+  cardElement.classList.toggle("legacy", mode === "legacy");
+  setCardCollapsed(true);
+}
+
+function setCardCollapsed(collapsed) {
+  const cardElement = $("mainCard");
+  const button = $("cardToggleButton");
+  cardElement.classList.toggle("collapsed", collapsed);
+  const label = collapsed ? "Expand widget" : "Collapse widget";
+  button.setAttribute("aria-label", label);
+  button.setAttribute("title", label);
+  resizeWindow(collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH, collapsed ? COLLAPSED_HEIGHT : EXPANDED_HEIGHT);
 }
 
 function stopAutoRefresh() {
@@ -319,14 +429,21 @@ function startAutoRefresh() {
 }
 
 async function handleManualRefresh() {
-  await loadData({ showSpinner: true });
+  if (!mode) {
+    return;
+  }
+  try {
+    await loadData({ showSpinner: true });
+  } catch (error) {
+    console.error("[renderer] refresh failed", error);
+  }
 }
 
 async function enterWidget(nextMode) {
   mode = nextMode;
   showWidget();
   try {
-    await loadData();
+    await loadData({ showSpinner: false });
   } catch (error) {
     console.error("[renderer] initial load failed", error);
   }
@@ -356,6 +473,7 @@ async function connectAccount() {
   if (mode === "legacy") {
     // Started from a username-only install: stay on that widget if it didn't work out.
     showWidget();
+    await handleManualRefresh();
     return;
   }
   if (result.code === "cancelled") {
@@ -416,7 +534,6 @@ async function saveHandle() {
     if (savedHandle !== handle) {
       throw new Error("Unable to save handle");
     }
-    console.log("[renderer] saveHandle after setHandle", { savedHandle });
 
     await enterWidget("legacy");
   } catch (error) {
@@ -430,6 +547,36 @@ async function saveHandle() {
     setSaveButtonLoading(false);
   }
 }
+
+// ---------------- theme ----------------
+
+function applyTheme(isLight) {
+  const button = $("themeToggleButton");
+  document.body.classList.toggle("light-theme", isLight);
+  const label = isLight ? "Switch to dark mode" : "Switch to light mode";
+  button.setAttribute("aria-label", label);
+  button.setAttribute("title", label);
+  button.textContent = isLight ? "🌞" : "🌙";
+  applyThemeToCharts();
+}
+
+function readSavedTheme() {
+  try {
+    return localStorage.getItem(THEME_KEY) === "light";
+  } catch {
+    return false;
+  }
+}
+
+function saveTheme(isLight) {
+  try {
+    localStorage.setItem(THEME_KEY, isLight ? "light" : "dark");
+  } catch {
+    // Theme just won't persist.
+  }
+}
+
+// ---------------- start-up ----------------
 
 function bind(id, event, handler) {
   const element = $(id);
@@ -447,20 +594,26 @@ window.addEventListener("DOMContentLoaded", async () => {
   bind("legacyLink", "click", () => showSetupPane("setupLegacy"));
   bind("backButton", "click", () => showSetupPane("setupConnect"));
   bind("saveHandleButton", "click", saveHandle);
-  bind("refreshButton", "click", handleManualRefresh);
-  bind("disconnectButton", "click", () => (mode === "account" ? disconnectAccount() : connectAccount()));
-  bind("todayCard", "click", toggleToday);
-  bind("todayCard", "keydown", (event) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      toggleToday();
-    }
+  bind("cardToggleButton", "click", () => setCardCollapsed(!$("mainCard").classList.contains("collapsed")));
+  bind("menuButton", "click", () => window.menu.show());
+  bind("themeToggleButton", "click", () => {
+    const isLight = !document.body.classList.contains("light-theme");
+    saveTheme(isLight);
+    applyTheme(isLight);
   });
+
+  applyTheme(readSavedTheme());
 
   if (!window.account || !window.api) {
     showSetupScreen("App bridge not available");
     return;
   }
+
+  window.menu.onAction((action) => {
+    if (action === "refresh") handleManualRefresh();
+    if (action === "disconnect") disconnectAccount();
+    if (action === "connect") connectAccount();
+  });
 
   const status = await window.account.getStatus();
   const info = status.ok ? status.data : { connected: false, legacyHandle: "" };
