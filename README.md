@@ -7,7 +7,8 @@ A lightweight Electron desktop widget that sits on your home screen/desktop and 
 - Total solved count + difficulty breakdown (Easy / Medium / Hard)
 - "Solved today" count
 - 7-day activity graph (problems solved per day)
-- No login required (only your username)
+- Connect your AlgoMentor account in two clicks (or just use your LeetCode username)
+- With AlgoMentor: solved-today count (click to expand a per-platform breakdown) and an all-platform total with difficulty and platform breakdown
 
 ## Features
 
@@ -16,6 +17,12 @@ A lightweight Electron desktop widget that sits on your home screen/desktop and 
 - Daily progress (today's solved count)
 - 7-day activity graph
 - Runs as a desktop widget (separate from the browser)
+
+## Connecting AlgoMentor
+
+Click **Connect AlgoMentor** in the widget. Your browser opens AlgoMentor with a code; check it matches the one in the widget and click **Allow**. The widget connects on its own. The access token is read-only and stored encrypted with your OS keychain; you can disconnect from the widget or revoke it in AlgoMentor under Settings. Set `ALGOMENTOR_URL` to point the widget at a different AlgoMentor deployment.
+
+Installs that only have a LeetCode username keep working and show a **Connect AlgoMentor** link at the bottom.
 
 ## Tech stack
 

@@ -14,15 +14,47 @@
   <!-- SETUP SCREEN -->
   <div id="setupScreen" class="setup-screen" style="display:none;">
     <div class="setup-card">
-      <h3>Enter your LeetCode username</h3>
-      <input id="username" placeholder="e.g. tourist" />
-      <button id="saveHandleButton">Save</button>
+      <!-- 1. Choose how to connect -->
+      <div id="setupConnect">
+        <h3 id="setupTitle">Connect your AlgoMentor account</h3>
+        <p class="setup-note">See solves from every platform in one place.</p>
+        <button id="connectButton">Connect AlgoMentor</button>
+        <button id="legacyLink" class="link-button" type="button">Use a LeetCode username instead</button>
+      </div>
+
+      <!-- 2. Waiting for approval in the browser -->
+      <div id="setupWaiting" style="display:none;">
+        <h3>Approve in your browser</h3>
+        <p class="setup-note">Check this code matches the one on the AlgoMentor page, then click Allow.</p>
+        <div id="linkCode" class="link-code"></div>
+        <div class="waiting-row"><span class="waiting-spinner" aria-hidden="true"></span><span>Waiting for approval…</span></div>
+        <button id="reopenButton" class="link-button" type="button">Open the page again</button>
+        <button id="cancelButton" class="link-button" type="button">Cancel</button>
+      </div>
+
+      <!-- 3. Legacy: LeetCode username only -->
+      <div id="setupLegacy" style="display:none;">
+        <h3>Enter your LeetCode username</h3>
+        <input id="username" placeholder="e.g. tourist" />
+        <button id="saveHandleButton">Save</button>
+        <button id="backButton" class="link-button" type="button">Back</button>
+      </div>
     </div>
   </div>
 
   <!-- MAIN WIDGET -->
   <div id="widgetContent" style="display:none;">
     <div class="card">
+      <!-- Solved today: count when collapsed, per-platform breakdown when expanded -->
+      <div id="todayCard" class="today-card" style="display:none;" role="button" tabindex="0" aria-expanded="false">
+        <div class="today-head">
+          <span class="today-count" id="todayCount">0</span>
+          <span class="today-label">solved today</span>
+          <span class="today-chevron" aria-hidden="true">&#9662;</span>
+        </div>
+        <div id="todayBreakdown" class="today-breakdown" style="display:none;"></div>
+      </div>
+
       <div class="solved-section">
         <div class="chart-wrap">
           <canvas id="pieChart"></canvas>
@@ -53,12 +85,19 @@
           </div>
         </div>
       </div>
+      <div id="platformList" class="platform-list" style="display:none;"></div>
+
       <center>
         <div id="dailySolvedCount" class="daily-solved-count"></div>
       </center>
 
       <div class="bar-wrap">
         <canvas id="barChart"></canvas>
+      </div>
+
+      <div id="accountFooter" class="account-footer" style="display:none;">
+        <span id="accountName"></span>
+        <button id="disconnectButton" class="link-button" type="button">Disconnect</button>
       </div>
       
     </div>

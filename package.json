@@ -21,6 +21,7 @@
     "productName": "LeetCodeWidget",
     "files": [
       "main.js",
+      "account.js",
       "preload.js",
       "index.html",
       "renderer.js",
