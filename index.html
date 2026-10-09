@@ -1,110 +1,95 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <div id="card" class="card">
 
-  <!-- LOADING SCREEN -->
-  <div id="loadingScreen" class="loading-screen" style="display:none;">
-    <div class="loading-spinner"></div>
-    <div class="loading-text">Loading...</div>
-  </div>
+    <!-- LOADING -->
+    <div id="loadingScreen" class="loading-screen" style="display:none;">
+      <div class="loading-spinner"></div>
+    </div>
 
-  <!-- SETUP SCREEN -->
-  <div id="setupScreen" class="setup-screen" style="display:none;">
-    <div class="setup-card">
+    <!-- SETUP -->
+    <div id="setupScreen" class="setup-screen" style="display:none;">
       <!-- 1. Choose how to connect -->
-      <div id="setupConnect">
+      <div id="setupConnect" class="setup-pane">
         <h3 id="setupTitle">Connect your AlgoMentor account</h3>
         <p class="setup-note">See solves from every platform in one place.</p>
-        <button id="connectButton">Connect AlgoMentor</button>
+        <button id="connectButton" class="primary-button">Connect AlgoMentor</button>
         <button id="legacyLink" class="link-button" type="button">Use a LeetCode username instead</button>
       </div>
 
       <!-- 2. Waiting for approval in the browser -->
-      <div id="setupWaiting" style="display:none;">
+      <div id="setupWaiting" class="setup-pane" style="display:none;">
         <h3>Approve in your browser</h3>
         <p class="setup-note">Check this code matches the one on the AlgoMentor page, then click Allow.</p>
         <div id="linkCode" class="link-code"></div>
         <div class="waiting-row"><span class="waiting-spinner" aria-hidden="true"></span><span>Waiting for approval…</span></div>
-        <button id="reopenButton" class="link-button" type="button">Open the page again</button>
-        <button id="cancelButton" class="link-button" type="button">Cancel</button>
+        <div class="setup-links">
+          <button id="reopenButton" class="link-button" type="button">Open the page again</button>
+          <button id="cancelButton" class="link-button" type="button">Cancel</button>
+        </div>
       </div>
 
       <!-- 3. Legacy: LeetCode username only -->
-      <div id="setupLegacy" style="display:none;">
+      <div id="setupLegacy" class="setup-pane" style="display:none;">
         <h3>Enter your LeetCode username</h3>
         <input id="username" placeholder="e.g. tourist" />
-        <button id="saveHandleButton">Save</button>
+        <button id="saveHandleButton" class="primary-button">Save</button>
         <button id="backButton" class="link-button" type="button">Back</button>
       </div>
     </div>
-  </div>
 
-  <!-- MAIN WIDGET -->
-  <div id="widgetContent" style="display:none;">
-    <div class="card">
-      <!-- Solved today: count when collapsed, per-platform breakdown when expanded -->
-      <div id="todayCard" class="today-card" style="display:none;" role="button" tabindex="0" aria-expanded="false">
-        <div class="today-head">
-          <span class="today-count" id="todayCount">0</span>
-          <span class="today-label">solved today</span>
-          <span class="today-chevron" aria-hidden="true">&#9662;</span>
-        </div>
-        <div id="todayBreakdown" class="today-breakdown" style="display:none;"></div>
-      </div>
-
+    <!-- WIDGET -->
+    <div id="widgetContent" style="display:none;">
       <div class="solved-section">
+        <!-- Collapsed: today's count only -->
+        <div class="today-mini">
+          <div class="today-mini-label">Questions solved today</div>
+          <div class="today-mini-count" id="todayCount">0</div>
+          <button id="expandButton" class="icon-button" title="Expand widget" aria-label="Expand widget">&#10530;</button>
+        </div>
+
+        <!-- Expanded: donut, platform totals, difficulty breakdown -->
         <div class="chart-wrap">
           <canvas id="pieChart"></canvas>
           <div class="chart-center">
-            <div class="center-count" id="solvedCount"></div>
-            <div class="center-label">Solved</div>
+            <div class="center-count" id="solvedCount">0</div>
+            <div class="center-label" id="solvedLabel">Solved</div>
           </div>
         </div>
 
-        <div class="legend">
-          <!-- <div class="legend-refresh">
-            <button id="refreshButton" class="icon-button" title="Refresh now" aria-label="Refresh now">↻</button>
-          </div> -->
-          <div class="legend-row">
-            <span class="dot easy"></span>
-            <span class="legend-name">Easy</span>
-            <span class="legend-count" id="easyCount"></span>
-          </div>
-          <div class="legend-row">
-            <span class="dot medium"></span>
-            <span class="legend-name">Medium</span>
-            <span class="legend-count" id="mediumCount"></span>
-          </div>
-          <div class="legend-row">
-            <span class="dot hard"></span>
-            <span class="legend-name">Hard</span>
-            <span class="legend-count" id="hardCount"></span>
+        <div class="column platforms-column">
+          <div class="column-title">Platforms</div>
+          <div id="platformList" class="rows"></div>
+        </div>
+
+        <div class="column difficulty-column">
+          <div class="column-title" id="difficultyTitle">Difficulty</div>
+          <div class="rows">
+            <div class="row"><span class="dot easy"></span><span class="row-name">Easy</span><span class="row-count" id="easyCount">0</span></div>
+            <div class="row"><span class="dot medium"></span><span class="row-name">Medium</span><span class="row-count" id="mediumCount">0</span></div>
+            <div class="row"><span class="dot hard"></span><span class="row-name">Hard</span><span class="row-count" id="hardCount">0</span></div>
           </div>
         </div>
-      </div>
-      <div id="platformList" class="platform-list" style="display:none;"></div>
 
-      <center>
-        <div id="dailySolvedCount" class="daily-solved-count"></div>
-      </center>
-
-      <div class="bar-wrap">
-        <canvas id="barChart"></canvas>
+        <div class="actions">
+          <button id="themeButton" class="icon-button" title="Switch to light mode" aria-label="Switch to light mode">&#127769;</button>
+          <button id="collapseButton" class="icon-button" title="Collapse widget" aria-label="Collapse widget">&#10529;</button>
+        </div>
       </div>
 
-      <div id="accountFooter" class="account-footer" style="display:none;">
-        <span id="accountName"></span>
-        <button id="disconnectButton" class="link-button" type="button">Disconnect</button>
+      <div class="line-wrap">
+        <canvas id="lineChart"></canvas>
+        <div id="lineTooltip" class="line-tooltip" style="display:none;"></div>
       </div>
-      
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="renderer.js"></script>
 </body>
-
 </html>

@@ -1,4 +1,8 @@
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+// Window sizes match the card: a small "solved today" tile, or the full card.
+const COLLAPSED_SIZE = { width: 180, height: 96 };
+const EXPANDED_SIZE = { width: 400, height: 290 };
+
 let pieChartInstance = null;
 let lineChartInstance = null;
 let refreshIntervalId = null;
@@ -7,19 +11,51 @@ let isLoadingData = false;
 let mode = null;
 const DEFAULT_SAVE_BUTTON_LABEL = "Save";
 
+// What the panel currently shows: combined totals plus one entry per platform.
+let view = {
+  totals: { solved: 0, easy: 0, medium: 0, hard: 0 },
+  platforms: [],
+  days: []
+};
+let selectedPlatform = null;
+
 const PLATFORMS = {
-  leetcode: { label: "LeetCode", color: "#ffa116" },
-  codeforces: { label: "Codeforces", color: "#3b9ae1" },
-  atcoder: { label: "AtCoder", color: "#c9c9c9" },
-  cses: { label: "CSES", color: "#7aa2f7" }
+  leetcode: "LeetCode",
+  codeforces: "Codeforces",
+  atcoder: "AtCoder",
+  cses: "CSES"
 };
 
-function platformInfo(key) {
-  return PLATFORMS[key] || { label: key.charAt(0).toUpperCase() + key.slice(1), color: "#9a9a9a" };
+function platformLabel(key) {
+  return PLATFORMS[key] || key.charAt(0).toUpperCase() + key.slice(1);
+}
+
+function cssVar(name) {
+  return getComputedStyle(document.body).getPropertyValue(name).trim();
+}
+
+function platformColor(key) {
+  return cssVar(PLATFORMS[key] ? `--${key}` : "--other");
 }
 
 function $(id) {
   return document.getElementById(id);
+}
+
+function readPref(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writePref(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // preferences are a convenience only
+  }
 }
 
 function showLoading() {
@@ -30,19 +66,66 @@ function hideLoading() {
   $("loadingScreen").style.display = "none";
 }
 
+// ---------------- layout ----------------
+
+function isCollapsedPref() {
+  return readPref("collapsed") !== "false";
+}
+
+/** Sizes the window for the current state; setup screens always use the full card. */
+function applyLayout() {
+  const onWidget = $("widgetContent").style.display !== "none";
+  const collapsed = onWidget && isCollapsedPref();
+  $("card").classList.toggle("collapsed", collapsed);
+  const size = collapsed ? COLLAPSED_SIZE : EXPANDED_SIZE;
+  window.widget.resize(size.width, size.height);
+  if (!collapsed && lineChartInstance) {
+    // The canvases were hidden while collapsed; let Chart.js re-measure.
+    requestAnimationFrame(() => {
+      lineChartInstance && lineChartInstance.resize();
+      pieChartInstance && pieChartInstance.resize();
+    });
+  }
+}
+
+function setCollapsed(collapsed) {
+  writePref("collapsed", String(collapsed));
+  applyLayout();
+}
+
+function applyTheme() {
+  const light = readPref("theme") === "light";
+  document.body.classList.toggle("light-theme", light);
+  const label = light ? "Switch to dark mode" : "Switch to light mode";
+  $("themeButton").title = label;
+  $("themeButton").setAttribute("aria-label", label);
+  $("themeButton").textContent = light ? "\u{1F31E}" : "\u{1F319}";
+}
+
+function toggleTheme() {
+  writePref("theme", readPref("theme") === "light" ? "dark" : "light");
+  applyTheme();
+  renderView();
+}
+
 // ---------------- charts ----------------
 
 function drawDoughnut(easy, medium, hard) {
+  const data = [easy, medium, hard];
+  const colors = [cssVar("--easy"), cssVar("--medium"), cssVar("--hard")];
   if (pieChartInstance) {
-    pieChartInstance.destroy();
+    pieChartInstance.data.datasets[0].data = data;
+    pieChartInstance.data.datasets[0].backgroundColor = colors;
+    pieChartInstance.update();
+    return;
   }
   pieChartInstance = new Chart($("pieChart"), {
     type: "doughnut",
     data: {
       labels: ["Easy", "Medium", "Hard"],
       datasets: [{
-        data: [easy, medium, hard],
-        backgroundColor: ["#00b8a3", "#ffc01e", "#ef4743"],
+        data,
+        backgroundColor: colors,
         borderWidth: 0,
         spacing: 2,
         borderRadius: 6,
@@ -53,6 +136,8 @@ function drawDoughnut(easy, medium, hard) {
       cutout: "89%",
       responsive: true,
       maintainAspectRatio: false,
+      animation: { duration: 250 },
+      events: [],
       plugins: {
         legend: { display: false },
         tooltip: { enabled: false }
@@ -61,130 +146,196 @@ function drawDoughnut(easy, medium, hard) {
   });
 }
 
-function drawLine(labels, counts) {
+function formatDay(isoDate) {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleString("en-US", { timeZone: "UTC", month: "short", day: "numeric" });
+}
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+/** HTML tooltip for the line chart: the day's total and its split by platform. */
+function lineTooltip(context) {
+  const tip = $("lineTooltip");
+  const { chart, tooltip } = context;
+  if (!tooltip || tooltip.opacity === 0 || !tooltip.dataPoints || !tooltip.dataPoints.length) {
+    tip.style.display = "none";
+    return;
+  }
+  const day = view.days[tooltip.dataPoints[0].dataIndex];
+  if (!day) {
+    tip.style.display = "none";
+    return;
+  }
+
+  const title = el("div", "tooltip-title");
+  title.append(el("span", "", day.label), el("span", "", `${day.count} solved`));
+  const children = [title];
+  day.platforms.forEach((p) => {
+    const row = el("div", "tooltip-row");
+    const dot = el("span", "dot");
+    dot.style.background = platformColor(p.platform);
+    const count = el("b", "", String(p.count));
+    row.append(dot, el("span", "", platformLabel(p.platform)), count);
+    children.push(row);
+  });
+  tip.replaceChildren(...children);
+  tip.style.display = "block";
+
+  // Keep the box inside the chart area, flipping to the left of the point near the edge.
+  const wrap = chart.canvas.parentNode;
+  const x = tooltip.caretX;
+  const y = tooltip.caretY;
+  const w = tip.offsetWidth;
+  const h = tip.offsetHeight;
+  let left = x + 10;
+  if (left + w > wrap.clientWidth) left = x - w - 10;
+  let top = y - h / 2;
+  top = Math.max(0, Math.min(top, wrap.clientHeight - h));
+  tip.style.left = `${Math.max(0, left)}px`;
+  tip.style.top = `${top}px`;
+}
+
+function drawLine() {
+  const labels = view.days.map((d) => d.label);
+  const counts = view.days.map((d) => d.count);
+  const accent = cssVar("--accent");
+  const accentSoft = cssVar("--accent-soft");
+  const muted = cssVar("--muted");
+  const grid = cssVar("--grid");
+
   if (lineChartInstance) {
     lineChartInstance.destroy();
   }
-  lineChartInstance = new Chart($("barChart"), {
+  lineChartInstance = new Chart($("lineChart"), {
     type: "line",
     data: {
       labels,
       datasets: [{
         data: counts,
-        borderColor: "#00b8a3",
-        backgroundColor: "rgba(0, 184, 163, 0.15)",
+        borderColor: accent,
+        backgroundColor: accentSoft,
+        pointBackgroundColor: accent,
         tension: 0.35,
         pointRadius: 3,
-        pointHoverRadius: 4,
+        pointHoverRadius: 5,
+        pointHitRadius: 14,
         fill: true
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      animation: { duration: 250 },
+      interaction: { mode: "index", intersect: false },
+      layout: { padding: { top: 4, right: 4 } },
       scales: {
-        y: { beginAtZero: true, ticks: { precision: 0 } }
+        x: { grid: { color: grid }, ticks: { color: muted, font: { size: 10 } } },
+        y: {
+          beginAtZero: true,
+          grid: { color: grid },
+          ticks: { color: muted, font: { size: 10 }, precision: 0, maxTicksLimit: 5 }
+        }
       },
-      plugins: { legend: { display: false } }
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false, external: lineTooltip }
+      }
     }
   });
 }
 
-function setDifficultyCounts(total, easy, medium, hard) {
-  $("solvedCount").innerText = total;
-  $("easyCount").innerText = easy;
-  $("mediumCount").innerText = medium;
-  $("hardCount").innerText = hard;
+// ---------------- panel ----------------
+
+function difficultyFor(key) {
+  if (!key) return { ...view.totals, label: "Solved" };
+  const p = view.platforms.find((x) => x.platform === key);
+  if (!p) return { ...view.totals, label: "Solved" };
+  return { solved: p.solved, easy: p.easy, medium: p.medium, hard: p.hard, label: platformLabel(key) };
+}
+
+/** Difficulty column and donut follow the hovered platform, or show all platforms. */
+function renderSelection() {
+  const d = difficultyFor(selectedPlatform);
+  $("solvedCount").textContent = d.solved;
+  $("solvedLabel").textContent = d.label;
+  $("difficultyTitle").textContent = selectedPlatform ? `${platformLabel(selectedPlatform)}` : "Difficulty";
+  $("easyCount").textContent = d.easy;
+  $("mediumCount").textContent = d.medium;
+  $("hardCount").textContent = d.hard;
+  drawDoughnut(d.easy, d.medium, d.hard);
+  document.querySelectorAll(".platform-row").forEach((row) => {
+    row.classList.toggle("active", row.dataset.platform === selectedPlatform);
+  });
+}
+
+function selectPlatform(key) {
+  if (selectedPlatform === key) return;
+  selectedPlatform = key;
+  renderSelection();
+}
+
+function renderPlatforms() {
+  const list = $("platformList");
+  const active = view.platforms.filter((p) => p.solved > 0).sort((a, b) => b.solved - a.solved);
+  if (!active.length) {
+    list.replaceChildren(el("div", "platforms-empty", "No solves yet"));
+    return;
+  }
+  list.replaceChildren(...active.map((p) => {
+    const row = el("div", "row platform-row");
+    row.dataset.platform = p.platform;
+    const dot = el("span", "dot");
+    dot.style.background = platformColor(p.platform);
+    row.append(dot, el("span", "row-name", platformLabel(p.platform)), el("span", "row-count", String(p.solved)));
+    row.addEventListener("mouseenter", () => selectPlatform(p.platform));
+    return row;
+  }));
+}
+
+function renderView() {
+  if (selectedPlatform && !view.platforms.some((p) => p.platform === selectedPlatform)) {
+    selectedPlatform = null;
+  }
+  renderPlatforms();
+  renderSelection();
+  drawLine();
+}
+
+function setTodayCount(count) {
+  $("todayCount").textContent = count;
 }
 
 // ---------------- AlgoMentor (account) mode ----------------
-
-function platformRow(key, count, { bar } = {}) {
-  const info = platformInfo(key);
-  const row = document.createElement("div");
-  row.className = "platform-row";
-
-  const dot = document.createElement("span");
-  dot.className = "dot";
-  dot.style.background = info.color;
-
-  const name = document.createElement("span");
-  name.className = "platform-name";
-  name.textContent = info.label;
-
-  const value = document.createElement("span");
-  value.className = "platform-count";
-  value.textContent = count;
-
-  row.append(dot, name);
-  if (bar !== undefined) {
-    const track = document.createElement("div");
-    track.className = "platform-bar";
-    const fill = document.createElement("span");
-    fill.style.width = `${bar}%`;
-    fill.style.background = info.color;
-    track.appendChild(fill);
-    row.appendChild(track);
-  }
-  row.appendChild(value);
-  return row;
-}
-
-function renderToday(solvedToday) {
-  $("todayCount").textContent = solvedToday.total;
-
-  const list = $("todayBreakdown");
-  list.replaceChildren();
-  if (!solvedToday.platforms.length) {
-    const empty = document.createElement("div");
-    empty.className = "today-empty";
-    empty.textContent = "Nothing solved yet today.";
-    list.appendChild(empty);
-    return;
-  }
-  solvedToday.platforms.forEach((p) => list.appendChild(platformRow(p.platform, p.count)));
-}
-
-function renderPlatforms(platforms, total) {
-  const list = $("platformList");
-  list.replaceChildren();
-  const active = platforms.filter((p) => p.solved > 0).sort((a, b) => b.solved - a.solved);
-  list.style.display = active.length ? "grid" : "none";
-  active.forEach((p) => {
-    const pct = total > 0 ? Math.max(3, Math.round((p.solved / total) * 100)) : 0;
-    list.appendChild(platformRow(p.platform, p.solved, { bar: pct }));
-  });
-}
 
 function renderSummary(data) {
   const totals = data.totals || {};
   const easy = Number(totals.easy) || 0;
   const medium = Number(totals.medium) || 0;
   const hard = Number(totals.hard) || 0;
-  const total = Number(totals.solved) || (easy + medium + hard);
 
-  setDifficultyCounts(total, easy, medium, hard);
-  drawDoughnut(easy, medium, hard);
-  renderToday(data.solvedToday || { total: 0, platforms: [] });
-  renderPlatforms(data.platforms || [], total);
-
-  const days = data.last7Days || [];
-  drawLine(
-    days.map((d) => {
-      const [y, m, day] = d.date.split("-").map(Number);
-      return new Date(Date.UTC(y, m - 1, day)).toLocaleString("en-US", { timeZone: "UTC", month: "short", day: "numeric" });
-    }),
-    days.map((d) => Number(d.count) || 0)
-  );
-
-  $("accountName").textContent = data.user && data.user.name ? `AlgoMentor · ${data.user.name}` : "AlgoMentor";
-}
-
-function toggleToday() {
-  const card = $("todayCard");
-  const expanded = card.getAttribute("aria-expanded") === "true";
-  card.setAttribute("aria-expanded", String(!expanded));
-  $("todayBreakdown").style.display = expanded ? "none" : "grid";
+  view = {
+    totals: { solved: Number(totals.solved) || (easy + medium + hard), easy, medium, hard },
+    platforms: (data.platforms || []).map((p) => ({
+      platform: p.platform,
+      solved: Number(p.solved) || 0,
+      easy: Number(p.easy) || 0,
+      medium: Number(p.medium) || 0,
+      hard: Number(p.hard) || 0
+    })),
+    days: (data.last7Days || []).map((d) => ({
+      label: formatDay(d.date),
+      count: Number(d.count) || 0,
+      // Older servers send only the combined count.
+      platforms: (d.platforms || []).filter((p) => p.count > 0)
+    }))
+  };
+  setTodayCount((data.solvedToday && data.solvedToday.total) || 0);
+  renderView();
 }
 
 async function loadAccountData() {
@@ -206,7 +357,6 @@ async function loadAccountData() {
 
 async function loadLegacyData() {
   const data = await window.api.fetchStats();
-  console.log("[renderer] loadData data", data);
   if (!data || typeof data !== "object") {
     return;
   }
@@ -216,32 +366,31 @@ async function loadLegacyData() {
   const hard = Number(data.hard) || 0;
   const total = Number(data.total) || (easy + medium + hard);
 
-  setDifficultyCounts(total, easy, medium, hard);
-  drawDoughnut(easy, medium, hard);
-
-  const hasDailyObject = data.daily && !Array.isArray(data.daily) && typeof data.daily === "object";
-  let dailyLabels = [];
-  let dailyCounts = [];
-
-  if (hasDailyObject) {
-    dailyLabels = Object.keys(data.daily);
-    dailyCounts = Object.values(data.daily).map((count) => Number(count) || 0);
+  let labels = [];
+  let counts = [];
+  if (data.daily && !Array.isArray(data.daily) && typeof data.daily === "object") {
+    labels = Object.keys(data.daily);
+    counts = Object.values(data.daily).map((count) => Number(count) || 0);
   } else if (Array.isArray(data.daily)) {
-    dailyCounts = data.daily.map((count) => Number(count) || 0);
-    dailyLabels = Array.isArray(data.dailyDates)
-      ? data.dailyDates
-      : dailyCounts.map((_, i) => `D${i + 1}`);
+    counts = data.daily.map((count) => Number(count) || 0);
+    labels = Array.isArray(data.dailyDates) ? data.dailyDates : counts.map((_, i) => `D${i + 1}`);
+  }
+  if (counts.length === 0) {
+    labels = ["Today"];
+    counts = [0];
   }
 
-  if (dailyCounts.length === 0) {
-    dailyLabels = ["Today"];
-    dailyCounts = [0];
-  }
-
-  const lastDailyCount = dailyCounts[dailyCounts.length - 1] || 0;
-  $("dailySolvedCount").innerText = `Number of questions solved today: ${lastDailyCount}`;
-
-  drawLine(dailyLabels, dailyCounts);
+  view = {
+    totals: { solved: total, easy, medium, hard },
+    platforms: [{ platform: "leetcode", solved: total, easy, medium, hard }],
+    days: counts.map((count, i) => ({
+      label: labels[i],
+      count,
+      platforms: count > 0 ? [{ platform: "leetcode", count }] : []
+    }))
+  };
+  setTodayCount(counts[counts.length - 1] || 0);
+  renderView();
 }
 
 // ---------------- shared flow ----------------
@@ -251,7 +400,6 @@ async function loadData({ showSpinner = true } = {}) {
     return;
   }
   isLoadingData = true;
-  console.log("[renderer] loadData start", { mode });
   if (showSpinner) {
     showLoading();
   }
@@ -280,23 +428,13 @@ function showSetupScreen(message) {
   $("widgetContent").style.display = "none";
   showSetupPane("setupConnect");
   $("setupTitle").innerText = message || "Connect your AlgoMentor account";
+  applyLayout();
 }
 
 function showWidget() {
   $("setupScreen").style.display = "none";
   $("widgetContent").style.display = "block";
-  const isAccount = mode === "account";
-  $("todayCard").style.display = isAccount ? "block" : "none";
-  $("accountFooter").style.display = "flex";
-  // Account mode offers Disconnect; a username-only install offers to connect.
-  $("disconnectButton").textContent = isAccount ? "Disconnect" : "Connect AlgoMentor";
-  if (!isAccount) {
-    $("accountName").textContent = `LeetCode · ${window.api.getHandle() || ""}`;
-  }
-  $("dailySolvedCount").style.display = isAccount ? "none" : "block";
-  if (!isAccount) {
-    $("platformList").style.display = "none";
-  }
+  applyLayout();
 }
 
 function stopAutoRefresh() {
@@ -318,10 +456,6 @@ function startAutoRefresh() {
   }, REFRESH_INTERVAL_MS);
 }
 
-async function handleManualRefresh() {
-  await loadData({ showSpinner: true });
-}
-
 async function enterWidget(nextMode) {
   mode = nextMode;
   showWidget();
@@ -340,6 +474,7 @@ async function enterWidget(nextMode) {
 async function connectAccount() {
   const button = $("connectButton");
   button.disabled = true;
+  const previousMode = mode;
   showSetupScreen();
   window.account.onLinkCode((info) => {
     $("linkCode").textContent = info.userCode;
@@ -353,7 +488,7 @@ async function connectAccount() {
     await enterWidget("account");
     return;
   }
-  if (mode === "legacy") {
+  if (previousMode === "legacy") {
     // Started from a username-only install: stay on that widget if it didn't work out.
     showWidget();
     return;
@@ -377,14 +512,20 @@ async function disconnectAccount() {
   showSetupScreen();
 }
 
+function handleMenuAction(action) {
+  if (action === "refresh") {
+    loadData().catch((error) => console.error("[renderer] refresh failed", error));
+  } else if (action === "disconnect") {
+    disconnectAccount();
+  } else if (action === "connect") {
+    connectAccount();
+  }
+}
+
 // ---------------- legacy handle setup ----------------
 
 function setSaveButtonLoading(isLoading) {
   const saveButton = $("saveHandleButton");
-  if (!saveButton) {
-    return;
-  }
-
   if (!saveButton.dataset.defaultLabel) {
     saveButton.dataset.defaultLabel = saveButton.textContent || DEFAULT_SAVE_BUTTON_LABEL;
   }
@@ -406,61 +547,52 @@ async function saveHandle() {
   const title = document.querySelector("#setupLegacy h3");
   try {
     setSaveButtonLoading(true);
-    if (!window.api || typeof window.api.setHandle !== "function" || typeof window.api.getHandle !== "function") {
-      throw new Error("App bridge not available");
-    }
-
-    console.log("[renderer] saveHandle click", { handle });
     window.api.setHandle(handle);
-    const savedHandle = window.api.getHandle();
-    if (savedHandle !== handle) {
+    if (window.api.getHandle() !== handle) {
       throw new Error("Unable to save handle");
     }
-    console.log("[renderer] saveHandle after setHandle", { savedHandle });
-
     await enterWidget("legacy");
   } catch (error) {
     console.error("[renderer] saveHandle error", error);
     showSetupScreen();
     showSetupPane("setupLegacy");
-    if (title) {
-      title.innerText = error.message || "Unable to save handle";
-    }
+    title.innerText = error.message || "Unable to save handle";
   } finally {
     setSaveButtonLoading(false);
   }
 }
 
 function bind(id, event, handler) {
-  const element = $(id);
-  if (element) {
-    element.addEventListener(event, handler);
-  } else {
-    console.warn("[renderer] element not found", id);
-  }
+  $(id).addEventListener(event, handler);
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
+  if (!window.account || !window.api || !window.widget) {
+    $("card").textContent = "App bridge not available";
+    return;
+  }
+
+  applyTheme();
+  Chart.defaults.font.family = '"Space Grotesk", "Segoe UI", sans-serif';
+
   bind("connectButton", "click", connectAccount);
   bind("cancelButton", "click", () => window.account.cancelConnect());
   bind("reopenButton", "click", () => window.account.reopenBrowser());
   bind("legacyLink", "click", () => showSetupPane("setupLegacy"));
   bind("backButton", "click", () => showSetupPane("setupConnect"));
   bind("saveHandleButton", "click", saveHandle);
-  bind("refreshButton", "click", handleManualRefresh);
-  bind("disconnectButton", "click", () => (mode === "account" ? disconnectAccount() : connectAccount()));
-  bind("todayCard", "click", toggleToday);
-  bind("todayCard", "keydown", (event) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      toggleToday();
-    }
-  });
+  bind("expandButton", "click", () => setCollapsed(false));
+  bind("collapseButton", "click", () => setCollapsed(true));
+  bind("themeButton", "click", toggleTheme);
+  // Leaving the platform column goes back to the all-platform breakdown.
+  bind("platformList", "mouseleave", () => selectPlatform(null));
+  bind("lineChart", "mouseleave", () => ($("lineTooltip").style.display = "none"));
 
-  if (!window.account || !window.api) {
-    showSetupScreen("App bridge not available");
-    return;
-  }
+  window.widget.onMenuAction(handleMenuAction);
+  window.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+    window.widget.showMenu(mode === "account");
+  });
 
   const status = await window.account.getStatus();
   const info = status.ok ? status.data : { connected: false, legacyHandle: "" };
