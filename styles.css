@@ -244,11 +244,14 @@ body.light-theme .legend-today-label {
 }
 
 .card.collapsed .legend-today-count {
-  flex: 0 0 auto;
-  text-align: left;
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: center;
   margin-left: 6px;
-  font-size: 40px;
-  font-weight: 700;
+  margin-right: 22px;
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .dot {
@@ -327,9 +330,25 @@ body.light-theme .legend-today-label {
   -webkit-app-region: no-drag;
 }
 
+.card.collapsed .legend {
+  position: static;
+}
+
+.card.collapsed .legend-actions {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+}
+
 .card.collapsed .card-toggle {
-  margin-top: 40px;
+  margin-top: 0;
   font-size: 7px;
+}
+
+/* The collapsed tile is mostly legend, so let it drag the window; buttons stay clickable. */
+.card.collapsed .legend,
+.card.collapsed .solved-section {
+  -webkit-app-region: drag;
 }
 
 /* ------------------ SETUP SCREEN ------------------ */
