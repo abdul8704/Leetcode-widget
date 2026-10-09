@@ -50,6 +50,22 @@ body.light-theme {
   transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out;
 }
 
+/* While the card resizes, fade the swapped-in content so nothing pops. */
+.card.animating {
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.card.animating > * {
+  animation: card-content-in 0.55s ease both;
+}
+
+@keyframes card-content-in {
+  from { opacity: 0; }
+  40% { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .card.loading {
   pointer-events: none;
 }

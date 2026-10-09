@@ -396,17 +396,68 @@ function showWidget() {
 
   const cardElement = $("mainCard");
   cardElement.classList.toggle("legacy", mode === "legacy");
-  setCardCollapsed(true);
+  setCardCollapsed(true, { animate: false });
 }
 
-function setCardCollapsed(collapsed) {
+const CARD_ANIMATION_MS = 550;
+const CARD_EASING = "cubic-bezier(0.4, 0, 0.2, 1)";
+let cardAnimationTimer = null;
+
+// Grows or shrinks the card from its current size to its new one. The window is already big
+// enough (expanding) or shrinks afterwards (collapsing), so the transparent area hides the resize.
+function animateCard(card, change, done) {
+  clearTimeout(cardAnimationTimer);
+  card.classList.remove("animating");
+  card.style.cssText = "";
+
+  const fromWidth = card.offsetWidth;
+  const fromHeight = card.offsetHeight;
+  change();
+  card.style.transition = "none";
+  card.style.maxHeight = "none";
+  const toWidth = card.offsetWidth;
+  const toHeight = card.offsetHeight;
+
+  if (!fromWidth || !fromHeight || (fromWidth === toWidth && fromHeight === toHeight)) {
+    card.style.cssText = "";
+    done();
+    return;
+  }
+
+  card.classList.add("animating");
+  card.style.width = `${fromWidth}px`;
+  card.style.height = `${fromHeight}px`;
+  card.getBoundingClientRect();
+  card.style.transition = `width ${CARD_ANIMATION_MS}ms ${CARD_EASING}, height ${CARD_ANIMATION_MS}ms ${CARD_EASING}`;
+  card.style.width = `${toWidth}px`;
+  card.style.height = `${toHeight}px`;
+
+  cardAnimationTimer = setTimeout(() => {
+    card.classList.remove("animating");
+    card.style.cssText = "";
+    done();
+  }, CARD_ANIMATION_MS + 30);
+}
+
+function setCardCollapsed(collapsed, { animate = true } = {}) {
   const cardElement = $("mainCard");
   const button = $("cardToggleButton");
-  cardElement.classList.toggle("collapsed", collapsed);
   const label = collapsed ? "Expand widget" : "Collapse widget";
   button.setAttribute("aria-label", label);
   button.setAttribute("title", label);
-  resizeWindow(collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH, collapsed ? COLLAPSED_HEIGHT : EXPANDED_HEIGHT);
+  const resize = () =>
+    resizeWindow(collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH, collapsed ? COLLAPSED_HEIGHT : EXPANDED_HEIGHT);
+  const change = () => cardElement.classList.toggle("collapsed", collapsed);
+
+  if (!animate) {
+    change();
+    resize();
+    return;
+  }
+  if (!collapsed) resize();
+  animateCard(cardElement, change, () => {
+    if (collapsed) resize();
+  });
 }
 
 function stopAutoRefresh() {
