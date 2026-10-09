@@ -132,7 +132,8 @@ ipcMain.handle("account:summary", wrap(() => account.fetchSummary()));
 ipcMain.handle("account:disconnect", wrap(() => account.disconnect()));
 
 // The login item and a manual start must not open two widgets.
-if (!app.requestSingleInstanceLock()) {
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
   app.quit();
 } else {
   app.on("second-instance", () => {
@@ -141,6 +142,7 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 app.whenReady().then(() => {
+  if (!gotLock) return;
   createWindow();
   app.setLoginItemSettings({
     openAtLogin: true,
