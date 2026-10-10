@@ -86,6 +86,8 @@ function createWindow() {
     height: COLLAPSED_HEIGHT,
     x,
     y,
+    // Without this, `npm start` shows the Electron logo in the taskbar.
+    icon: path.join(__dirname, "assets", "icon.ico"),
     frame: false,
     transparent: true,
     alwaysOnTop: false,
@@ -140,6 +142,9 @@ if (!gotLock) {
     if (win && !win.isDestroyed()) win.show();
   });
 }
+
+// Lets Windows group the taskbar button under this app's icon and name.
+app.setAppUserModelId("com.abdulaziz.leetcodewidget");
 
 app.whenReady().then(() => {
   if (!gotLock) return;

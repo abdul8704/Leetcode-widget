@@ -350,6 +350,10 @@ body.light-theme .legend-today-label {
   position: static;
 }
 
+.card.collapsed .solved-section {
+  position: relative;
+}
+
 .card.collapsed .legend-actions {
   position: absolute;
   right: 8px;
