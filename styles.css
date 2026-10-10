@@ -350,10 +350,16 @@ body.light-theme .legend-today-label {
   position: static;
 }
 
+/* Anchor the expand button to the inner panel, not the outer card, so it sits inside the box. */
+.card.collapsed .solved-section {
+  position: relative;
+  box-sizing: border-box;
+}
+
 .card.collapsed .legend-actions {
   position: absolute;
-  right: 8px;
-  bottom: 6px;
+  right: 7px;
+  bottom: 7px;
 }
 
 .card.collapsed .card-toggle {
