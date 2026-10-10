@@ -90,6 +90,8 @@ function createWindow() {
     transparent: true,
     alwaysOnTop: false,
     resizable: true,
+    // LeetCode logo in the taskbar (the packaged exe also gets it from build.icon).
+    icon: path.join(__dirname, "assets", process.platform === "win32" ? "icon.ico" : "icon.png"),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -140,6 +142,9 @@ if (!gotLock) {
     if (win && !win.isDestroyed()) win.show();
   });
 }
+
+// Same id as build.appId, so Windows groups the taskbar button (and its icon) under this app.
+if (process.platform === "win32") app.setAppUserModelId("com.abdulaziz.leetcodewidget");
 
 app.whenReady().then(() => {
   if (!gotLock) return;
