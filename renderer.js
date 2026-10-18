@@ -11,6 +11,7 @@ const DEFAULT_SAVE_BUTTON_LABEL = "Save";
 let pieChartInstance = null;
 let lineChartInstance = null;
 let refreshIntervalId = null;
+let lastLoadStartedAt = 0;
 let isLoadingData = false;
 // "account" = connected to AlgoMentor, "legacy" = LeetCode username only.
 let mode = null;
@@ -356,6 +357,7 @@ async function loadData({ showSpinner = true } = {}) {
     return;
   }
   isLoadingData = true;
+  lastLoadStartedAt = Date.now();
   console.log("[renderer] loadData start", { mode });
   setCardLoading(true);
   if (showSpinner) {
@@ -467,16 +469,23 @@ function stopAutoRefresh() {
   }
 }
 
+// Checks the wall clock every 30s rather than trusting one 5-minute timer, so a refresh
+// still happens on time after the PC sleeps or the timer is delayed.
+const REFRESH_CHECK_MS = 30 * 1000;
+
 function startAutoRefresh() {
   stopAutoRefresh();
 
   refreshIntervalId = setInterval(async () => {
+    if (Date.now() - lastLoadStartedAt < REFRESH_INTERVAL_MS) {
+      return;
+    }
     try {
       await loadData({ showSpinner: false });
     } catch (error) {
       console.error("[renderer] auto refresh failed", error);
     }
-  }, REFRESH_INTERVAL_MS);
+  }, REFRESH_CHECK_MS);
 }
 
 async function handleManualRefresh() {

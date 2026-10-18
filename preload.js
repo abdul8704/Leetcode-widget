@@ -84,7 +84,10 @@ contextBridge.exposeInMainWorld("api", {
     const handle = store ? store.get("leetcodeHandle") : inMemoryStore.leetcodeHandle;
     if (!handle) return null;
 
-    const res = await fetch(`https://leetcode-widget-server.onrender.com/leetcode/stats/${handle}`);
+    // The stats server can take ~a minute to wake up, but must not hang the refresh loop.
+    const res = await fetch(`https://leetcode-widget-server.onrender.com/leetcode/stats/${handle}`, {
+      signal: AbortSignal.timeout(90 * 1000)
+    });
     if (!res.ok) {
       throw new Error(`Failed to fetch stats (${res.status})`);
     }

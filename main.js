@@ -96,7 +96,9 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false
+      sandbox: false,
+      // The widget is usually unfocused or covered; keep its refresh timer running at full speed.
+      backgroundThrottling: false
     }
   });
 
