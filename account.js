@@ -61,10 +61,14 @@ function getStatus() {
 
 // ---------- HTTP ----------
 
+// A hung request would otherwise keep the widget in its loading state and skip every later refresh.
+const REQUEST_TIMEOUT_MS = 20 * 1000;
+
 async function request(path, { method = "GET", body, token, signal } = {}) {
+  const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
-    signal,
+    signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
     headers: {
       ...(body ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
