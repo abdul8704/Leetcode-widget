@@ -1,4 +1,5 @@
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+const REFRESH_CHECK_MS = 15 * 1000;
 const EXPANDED_WIDTH = 460;
 const EXPANDED_HEIGHT = 420;
 const COLLAPSED_WIDTH = 180;
@@ -467,22 +468,31 @@ function stopAutoRefresh() {
   }
 }
 
+let lastRefreshAt = 0;
+
+// Checks often and refreshes once REFRESH_INTERVAL_MS has passed since the last attempt, rather
+// than trusting one long timer: that keeps the 5-minute cadence after the PC sleeps or the
+// window is occluded, and a failed refresh is retried on the next 5-minute mark.
 function startAutoRefresh() {
   stopAutoRefresh();
+  lastRefreshAt = Date.now();
 
   refreshIntervalId = setInterval(async () => {
+    if (Date.now() - lastRefreshAt < REFRESH_INTERVAL_MS) return;
+    lastRefreshAt = Date.now();
     try {
       await loadData({ showSpinner: false });
     } catch (error) {
       console.error("[renderer] auto refresh failed", error);
     }
-  }, REFRESH_INTERVAL_MS);
+  }, REFRESH_CHECK_MS);
 }
 
 async function handleManualRefresh() {
   if (!mode) {
     return;
   }
+  lastRefreshAt = Date.now();
   try {
     await loadData({ showSpinner: true });
   } catch (error) {

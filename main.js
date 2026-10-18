@@ -96,7 +96,9 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false
+      sandbox: false,
+      // Keep timers running at full speed when the widget is covered by other windows.
+      backgroundThrottling: false
     }
   });
 
