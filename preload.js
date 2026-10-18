@@ -84,7 +84,10 @@ contextBridge.exposeInMainWorld("api", {
     const handle = store ? store.get("leetcodeHandle") : inMemoryStore.leetcodeHandle;
     if (!handle) return null;
 
-    const res = await fetch(`https://leetcode-widget-server.onrender.com/leetcode/stats/${handle}`);
+    const res = await fetch(`https://leetcode-widget-server.onrender.com/leetcode/stats/${handle}`, {
+      // The free Render server can take a while to wake up, but must not hang forever.
+      signal: AbortSignal.timeout(90 * 1000)
+    });
     if (!res.ok) {
       throw new Error(`Failed to fetch stats (${res.status})`);
     }
